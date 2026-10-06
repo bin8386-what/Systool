@@ -30,9 +30,7 @@ class TouchService : AccessibilityService() {
     override fun onInterrupt() {}
     override fun onDestroy() { stopMicro(); instance = null; super.onDestroy() }
 
-    private fun jit(v: Float) = v + Random.nextFloat() * Config.jitterPx - Config.jitterPx / 2f
-
-    fun snapHead(x: Float, y: Float) {
+    private fun jit(v: Float) = v + Random.nextFloat() * Config.jitterPx - Config.jitterPx / 2ffun snapHead(x: Float, y: Float) {
         if (!Config.aimlock || Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return
         val sx = jit(x); val sy = jit(y)
         val ex = jit(x); val ey = jit(y) - Config.snapPx
@@ -53,9 +51,7 @@ class TouchService : AccessibilityService() {
             quadTo((sx + ex) / 2f, sy - abs(ey - sy) * 0.55f, ex, ey)
         }
         dispatch(path, 45L, 85L)
-    }
-
-    fun startMicro(x: Float, y: Float) {
+    }fun startMicro(x: Float, y: Float) {
         if (!Config.headTrack || !gameActive) return
         stopMicro()
         micro = object : Runnable {
@@ -78,6 +74,7 @@ class TouchService : AccessibilityService() {
     private fun dispatch(path: Path, a: Long, b: Long) {
         val g = GestureDescription.Builder()
             .addStroke(GestureDescription.StrokeDescription(
-                path, 0L, Random.nextLong(a, b))).build()dispatchGesture(g, null, null)
+                path, 0L, Random.nextLong(a, b))).build()
+        dispatchGesture(g, null, null)
     }
 }
