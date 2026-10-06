@@ -78,4 +78,6 @@ class TouchService : AccessibilityService() {
     private fun dispatch(path: Path, a: Long, b: Long) {
         val g = GestureDescription.Builder()
             .addStroke(GestureDescription.StrokeDescription(
-                path, 0L, Random.nextLong(a, b))).build()
+                path, 0L, Random.nextLong(a, b))).build()dispatchGesture(g, null, null)
+    }
+}
