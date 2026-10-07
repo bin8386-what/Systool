@@ -10,9 +10,6 @@ object Config {
     var jitterPx = 1.5f
     var microAmp = 8f
     var microMs = 60L
-    var padSize = 700
-    var padX = 40
-    var padY = 90
     var aimlock = true
     var headTrack = true
     var boostRam = true
