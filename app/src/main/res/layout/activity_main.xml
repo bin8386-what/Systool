@@ -18,19 +18,27 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:paddingBottom="20dp"/>
-        <Switch android:id="@+id/swAimlock" android:text="AIMLOCK"
+        <Switch android:id="@+id/swAimlock" android:text="🎯 AIMLOCK"
             android:textColor="#FFFFFF" android:textSize="16sp"
             android:paddingVertical="10dp"
             android:layout_width="match_parent" android:layout_height="wrap_content"/>
-        <Switch android:id="@+id/swBoost" android:text="BOOST RAM"
+        <Switch android:id="@+id/swHead" android:text="✨ BÁM ĐẦU"
             android:textColor="#FFFFFF" android:textSize="16sp"
             android:paddingVertical="10dp"
             android:layout_width="match_parent" android:layout_height="wrap_content"/>
-        <Switch android:id="@+id/swHead" android:text="BAM DAU"
+        <Switch android:id="@+id/swBoost" android:text="🚀 BOOST RAM"
             android:textColor="#FFFFFF" android:textSize="16sp"
             android:paddingVertical="10dp"
             android:layout_width="match_parent" android:layout_height="wrap_content"/>
-        <Switch android:id="@+id/swAnti" android:text="ANTIBAN"
+        <Switch android:id="@+id/swFixRung" android:text="⚙️ FIX RUNG"
+            android:textColor="#FFFFFF" android:textSize="16sp"
+            android:paddingVertical="10dp"
+            android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <Switch android:id="@+id/swOptimize" android:text="⚡ TỐI ƯU THIẾT BỊ"
+            android:textColor="#FFFFFF" android:textSize="16sp"
+            android:paddingVertical="10dp"
+            android:layout_width="match_parent" android:layout_height="wrap_content"/>
+        <Switch android:id="@+id/swAntiban" android:text="🛡️ ANTIBAN"
             android:textColor="#FFFFFF" android:textSize="16sp"
             android:paddingVertical="10dp"
             android:layout_width="match_parent" android:layout_height="wrap_content"/>
@@ -41,11 +49,12 @@
             android:layout_marginTop="20dp" android:weightSum="2"
             android:layout_width="match_parent" android:layout_height="wrap_content">
             <Button android:id="@+id/btnOn" android:text="ON"
-                android:textColor="#FFFFFF" android:backgroundTint="#4CAF50"
-                android:layout_width="0dp" android:layout_weight="1"
+                android:textSize="18sp" android:textStyle="bold"
+                android:layout_marginEnd="4dp"android:layout_width="0dp" android:layout_weight="1"
                 android:layout_height="60dp"/>
             <Button android:id="@+id/btnOff" android:text="OFF"
-                android:textColor="#FFFFFF" android:backgroundTint="#F44336"
+                android:textSize="18sp" android:textStyle="bold"
+                android:layout_marginStart="4dp"
                 android:layout_width="0dp" android:layout_weight="1"
                 android:layout_height="60dp"/>
         </LinearLayout>
