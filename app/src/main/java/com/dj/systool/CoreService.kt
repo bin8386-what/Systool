@@ -98,7 +98,7 @@ class CoreService : Service() {
             otype(),
             baseFlags(),
             PixelFormat.TRANSLUCENT
-        )v.setOnTouchListener { _, ev ->
+        )v.setOnTouchListener { view: View, ev: MotionEvent ->
             val s = TouchService.instance ?: return@setOnTouchListener false
             if (!TouchService.gameActive) return@setOnTouchListener false
             when (ev.actionMasked) {
@@ -173,8 +173,8 @@ class CoreService : Service() {
         h.removeCallbacks(gameWatch)
         pad?.let { wm.removeView(it) }
         if (Settings.System.canWrite(this)) {
-            try {
-                Settings.Global.putFloat(contentResolver,Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
+            try {Settings.Global.putFloat(contentResolver,
+                    Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
                 Settings.Global.putFloat(contentResolver,
                     Settings.Global.TRANSITION_ANIMATION_SCALE, 1f)
                 Settings.Global.putFloat(contentResolver,
