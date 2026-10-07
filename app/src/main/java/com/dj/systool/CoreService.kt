@@ -11,8 +11,6 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
-import android.os.VibrationEffect
-import android.os.Vibrator
 import android.provider.Settings
 import android.view.MotionEvent
 import android.view.View
@@ -95,10 +93,10 @@ class CoreService : Service() {
         val view = pad ?: return
         val params = lp ?: return
         params.flags = baseFlags()
-        try { wm.updateViewLayout(view, params) } catch (e: Exception) {}}
+        try { wm.updateViewLayout(view, params) } catch (e: Exception) {}
+    }
 
-    private fun addPad() {
-        val padView = View(this)
+    private fun addPad() {val padView = View(this)
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
             WindowManager.LayoutParams.MATCH_PARENT,
@@ -136,8 +134,6 @@ class CoreService : Service() {
         wm.addView(padView, params)
     }
 
-    // ============ BOOST ============
-
     private val heavy = listOf(
         "com.facebook.katana", "com.facebook.orca", "com.instagram.android",
         "com.zhiliaoapp.musically", "com.ss.android.ugc.trill",
@@ -174,12 +170,12 @@ class CoreService : Service() {
     private fun fixRung() {
         if (!Settings.System.canWrite(this)) return
         try {
-            Settings.System.putInt(contentResolver,Settings.System.HAPTIC_FEEDBACK_ENABLED, 0)
+            Settings.System.putInt(contentResolver,
+                Settings.System.HAPTIC_FEEDBACK_ENABLED, 0)
         } catch (e: Exception) {}
     }
 
-    private fun optimize() {
-        if (!Settings.System.canWrite(this)) return
+    private fun optimize() {if (!Settings.System.canWrite(this)) return
         try {
             Settings.Global.putFloat(contentResolver,
                 Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
@@ -206,7 +202,7 @@ class CoreService : Service() {
     private fun channel() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        val ch = NotificationChannel("st", "System Tool",
+        val ch = NotificationChannel("st", "Headlock",
             NotificationManager.IMPORTANCE_MIN)
         nm.createNotificationChannel(ch)
     }
@@ -217,7 +213,7 @@ class CoreService : Service() {
             b = Notification.Builder(this, "st")
         else
             b = Notification.Builder(this)
-        return b.setContentTitle("System Tool")
+        return b.setContentTitle("Headlock")
             .setContentText("running")
             .setSmallIcon(android.R.drawable.ic_menu_manage)
             .setPriority(Notification.PRIORITY_MIN)
