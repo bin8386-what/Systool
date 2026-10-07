@@ -9,11 +9,44 @@ import android.view.*
 import android.widget.*
 
 class CoreService : Service() {
+
     private lateinit var wm: WindowManager
     private var pad: View? = null
-    private var lastX = 0f
-    private var lastY = 0f
+    private var lp: WindowManager.LayoutParams? = null
+    private var padActive = true
+    private var prevX = 0f
+    private var prevY = 0f
+    private var curX = 0f
+    private var curY = 0f
+    private var isDown = false
     private val h = Handler(Looper.getMainLooper())
+
+    private val loop = object : Runnable {
+        override fun run() {
+            if (!isDown) return
+            val s = TouchService.instance ?: return
+            val dx = curX - prevX
+            val dy = curY - prevY
+            if (dx * dx + dy * dy > 4) {
+                s.dragStep(prevX, prevY, curX, curY, dy)
+                prevX = curX
+                prevY = curY
+            } else {
+                s.holdAt(curX, curY)
+            }
+            h.postDelayed(this, 30L)
+        }
+    }
+
+    private val gameWatch = object : Runnable {
+        override fun run() {
+            val active = TouchService.gameActive
+            if (active != padActive) {
+                setPadActive(active)
+            }
+            h.postDelayed(this, 400L)
+        }
+    }
 
     private val tick = object : Runnable {
         override fun run() {
@@ -30,47 +63,68 @@ class CoreService : Service() {
         startForeground(1, notif())
         wm = getSystemService(WINDOW_SERVICE) as WindowManager
         addPad()
+        setPadActive(false)
+        h.post(gameWatch)
         h.post(tick)
     }
 
-    private fun otype() =
+    private fun otype(): Int {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-            WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-        else WindowManager.LayoutParams.TYPE_PHONE
+            return WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+        return WindowManager.LayoutParams.TYPE_PHONE
+    }
+
+    private fun baseFlags(): Int {
+        var f = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+        if (!padActive) f = f or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+        return f
+    }
+
+    private fun setPadActive(active: Boolean) {
+        padActive = active
+        val v = pad ?: return
+        val params = lp ?: return
+        params.flags = baseFlags()
+        try { wm.updateViewLayout(v, params) } catch (_: Exception) {}
+    }
 
     private fun addPad() {
         val v = View(this)
-        val lp = WindowManager.LayoutParams(
-            Config.padSize, Config.padSize, otype(),
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+        val params = WindowManager.LayoutParams(
+            WindowManager.LayoutParams.MATCH_PARENT,
+            WindowManager.LayoutParams.MATCH_PARENT,
+            otype(),
+            baseFlags(),
             PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.BOTTOM or Gravity.END
-            x = Config.padX; y = Config.padY
-        }
-        v.setOnTouchListener { _, ev ->
+        )v.setOnTouchListener { _, ev ->
             val s = TouchService.instance ?: return@setOnTouchListener false
+            if (!TouchService.gameActive) return@setOnTouchListener false
             when (ev.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
-                    lastX = ev.rawX; lastY = ev.rawY
+                    curX = ev.rawX
+                    curY = ev.rawY
+                    prevX = ev.rawX
+                    prevY = ev.rawY
+                    isDown = true
                     s.snapHead(ev.rawX, ev.rawY)
-                    s.startMicro(ev.rawX, ev.rawY)
+                    h.postDelayed(loop, 100L)
                 }
                 MotionEvent.ACTION_MOVE -> {
-                    val dx = ev.rawX - lastX
-                    val dy = ev.rawY - lastY
-                    if (dx * dx + dy * dy > 16f) {
-                        s.dragAssist(ev.rawX, ev.rawY, dx, dy)
-                        lastX = ev.rawX; lastY = ev.rawY
-                    }
+                    curX = ev.rawX
+                    curY = ev.rawY
                 }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> s.stopMicro()
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    isDown = false
+                    h.removeCallbacks(loop)
+                }
             }
-            false
+            true
         }
         pad = v
-        wm.addView(v, lp)
+        lp = params
+        wm.addView(v, params)
     }
 
     private val heavy = listOf(
@@ -82,9 +136,12 @@ class CoreService : Service() {
 
     private fun applyPerf() {
         val am = getSystemService(ACTIVITY_SERVICE) as ActivityManager
-        heavy.forEach { try { am.killBackgroundProcesses(it) } catch (_: Exception) {} }
+        for (p in heavy) {
+            try { am.killBackgroundProcesses(p) } catch (_: Exception) {}
+        }
         if (Settings.System.canWrite(this)) {
-            try {Settings.Global.putFloat(contentResolver,
+            try {
+                Settings.Global.putFloat(contentResolver,
                     Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
                 Settings.Global.putFloat(contentResolver,
                     Settings.Global.TRANSITION_ANIMATION_SCALE, 0f)
@@ -97,15 +154,14 @@ class CoreService : Service() {
     private fun channel() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        nm.createNotificationChannel(
-            NotificationChannel("st", "System Tool",
-                NotificationManager.IMPORTANCE_MIN))
+        nm.createNotificationChannel(NotificationChannel("st", "System Tool",
+            NotificationManager.IMPORTANCE_MIN))
     }
 
     private fun notif(): Notification {
-        val b = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+        val b: Notification.Builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
             Notification.Builder(this, "st")
-        else @Suppress("DEPRECATION") Notification.Builder(this)
+        else Notification.Builder(this)
         return b.setContentTitle("System Tool").setContentText("running")
             .setSmallIcon(android.R.drawable.ic_menu_manage)
             .setPriority(Notification.PRIORITY_MIN).build()
@@ -113,11 +169,12 @@ class CoreService : Service() {
 
     override fun onDestroy() {
         h.removeCallbacks(tick)
+        h.removeCallbacks(loop)
+        h.removeCallbacks(gameWatch)
         pad?.let { wm.removeView(it) }
         if (Settings.System.canWrite(this)) {
             try {
-                Settings.Global.putFloat(contentResolver,
-                    Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
+                Settings.Global.putFloat(contentResolver,Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
                 Settings.Global.putFloat(contentResolver,
                     Settings.Global.TRANSITION_ANIMATION_SCALE, 1f)
                 Settings.Global.putFloat(contentResolver,
