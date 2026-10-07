@@ -53,7 +53,6 @@ class MainActivity : AppCompatActivity() {
 
         val btnOn = findViewById<Button>(R.id.btnOn)
         val btnOff = findViewById<Button>(R.id.btnOff)
-
         updateButtons(btnOn, btnOff)
 
         btnOn.setOnClickListener {
