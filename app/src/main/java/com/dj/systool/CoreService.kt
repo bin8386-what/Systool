@@ -11,8 +11,9 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.provider.Settings
-import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
@@ -43,7 +44,7 @@ class CoreService : Service() {
             } else {
                 s.holdAt(curX, curY)
             }
-            h.postDelayed(this, 30L)
+            h.postDelayed(this, 25L)
         }
     }
 
@@ -51,14 +52,14 @@ class CoreService : Service() {
         override fun run() {
             val active = TouchService.gameActive
             if (active != padActive) setPadActive(active)
-            h.postDelayed(this, 400L)
+            h.postDelayed(this, 300L)
         }
     }
 
     private val tick = object : Runnable {
         override fun run() {
-            if (TouchService.gameActive && Config.boostRam) applyPerf()
-            h.postDelayed(this, 8000L)
+            if (TouchService.gameActive) applyAll()
+            h.postDelayed(this, 5000L)
         }
     }
 
@@ -94,8 +95,9 @@ class CoreService : Service() {
         val view = pad ?: return
         val params = lp ?: return
         params.flags = baseFlags()
-        try { wm.updateViewLayout(view, params) } catch (e: Exception) {}
-    }private fun addPad() {
+        try { wm.updateViewLayout(view, params) } catch (e: Exception) {}}
+
+    private fun addPad() {
         val padView = View(this)
         val params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.MATCH_PARENT,
@@ -116,7 +118,7 @@ class CoreService : Service() {
                     prevY = ev.rawY
                     isDown = true
                     s.snapHead(ev.rawX, ev.rawY)
-                    h.postDelayed(loop, 100L)
+                    h.postDelayed(loop, 80L)
                 }
                 MotionEvent.ACTION_MOVE -> {
                     curX = ev.rawX
@@ -134,28 +136,71 @@ class CoreService : Service() {
         wm.addView(padView, params)
     }
 
+    // ============ BOOST ============
+
     private val heavy = listOf(
         "com.facebook.katana", "com.facebook.orca", "com.instagram.android",
-        "com.zhiliaoapp.musically", "com.google.android.youtube",
-        "com.spotify.music", "com.discord", "com.whatsapp",
-        "com.android.chrome", "com.sec.android.app.sbrowser"
+        "com.zhiliaoapp.musically", "com.ss.android.ugc.trill",
+        "com.google.android.youtube", "com.spotify.music", "com.discord",
+        "com.telegram.messenger", "org.telegram.messenger", "com.whatsapp",
+        "com.zing.zalo", "com.viber.voip",
+        "com.android.chrome", "com.sec.android.app.sbrowser",
+        "org.mozilla.firefox", "com.opera.browser",
+        "com.netflix.mediaclient", "com.snapchat.android",
+        "com.twitter.android", "com.google.android.apps.photos",
+        "com.google.android.apps.maps", "com.google.android.apps.docs",
+        "com.samsung.android.game.gamehome", "com.sec.android.app.shealth",
+        "com.samsung.android.app.spage", "com.samsung.android.bixby.agent"
     )
 
-    private fun applyPerf() {
+    private fun applyAll() {
+        if (Config.boostRam) killHeavy()
+        if (Config.fixRung) fixRung()
+        if (Config.optimize) optimize()
+        if (Config.antiban) antiban()
+    }
+
+    private fun killHeavy() {
         val am = getSystemService(ACTIVITY_SERVICE) as ActivityManager
         for (p in heavy) {
             try { am.killBackgroundProcesses(p) } catch (e: Exception) {}
         }
-        if (Settings.System.canWrite(this)) {
-            try {
-                Settings.Global.putFloat(contentResolver,
-                    Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
-                Settings.Global.putFloat(contentResolver,
-                    Settings.Global.TRANSITION_ANIMATION_SCALE, 0f)
-                Settings.Global.putFloat(contentResolver,
-                    Settings.Global.WINDOW_ANIMATION_SCALE, 0f)
-            } catch (e: Exception) {}
-        }
+        try {
+            val m = ActivityManager::class.java.getMethod("killAllBackgroundProcesses")
+            m.invoke(am)
+        } catch (e: Exception) {}
+    }
+
+    private fun fixRung() {
+        if (!Settings.System.canWrite(this)) return
+        try {
+            Settings.System.putInt(contentResolver,Settings.System.HAPTIC_FEEDBACK_ENABLED, 0)
+        } catch (e: Exception) {}
+    }
+
+    private fun optimize() {
+        if (!Settings.System.canWrite(this)) return
+        try {
+            Settings.Global.putFloat(contentResolver,
+                Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
+            Settings.Global.putFloat(contentResolver,
+                Settings.Global.TRANSITION_ANIMATION_SCALE, 0f)
+            Settings.Global.putFloat(contentResolver,
+                Settings.Global.WINDOW_ANIMATION_SCALE, 0f)
+            Settings.Global.putInt(contentResolver,
+                Settings.Global.WIFI_SLEEP_POLICY,
+                Settings.Global.WIFI_SLEEP_POLICY_NEVER)
+        } catch (e: Exception) {}
+    }
+
+    private fun antiban() {
+        try {
+            val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+            if (nm.isNotificationPolicyAccessGranted) {
+                nm.setInterruptionFilter(
+                    NotificationManager.INTERRUPTION_FILTER_PRIORITY)
+            }
+        } catch (e: Exception) {}
     }
 
     private fun channel() {
@@ -172,7 +217,8 @@ class CoreService : Service() {
             b = Notification.Builder(this, "st")
         else
             b = Notification.Builder(this)
-        return b.setContentTitle("System Tool").setContentText("running")
+        return b.setContentTitle("System Tool")
+            .setContentText("running")
             .setSmallIcon(android.R.drawable.ic_menu_manage)
             .setPriority(Notification.PRIORITY_MIN)
             .build()
@@ -192,6 +238,8 @@ class CoreService : Service() {
                     Settings.Global.TRANSITION_ANIMATION_SCALE, 1f)
                 Settings.Global.putFloat(contentResolver,
                     Settings.Global.WINDOW_ANIMATION_SCALE, 1f)
+                Settings.System.putInt(contentResolver,
+                    Settings.System.HAPTIC_FEEDBACK_ENABLED, 1)
             } catch (e: Exception) {}
         }
         super.onDestroy()
