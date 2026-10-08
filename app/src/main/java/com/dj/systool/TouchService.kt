@@ -38,7 +38,7 @@ class TouchService : AccessibilityService() {
         path.moveTo(sx, sy)
         path.quadTo(sx + rnd.nextFloat() * 3f - 1.5f,
             sy - Config.snapPx * 0.5f, sx, ey)
-        dispatch(path, 34L + rnd.nextInt(12))
+        dispatch(path, 30L + rnd.nextInt(10))
     }
 
     fun dragStep(px: Float, py: Float, x: Float, y: Float, dy: Float) {
@@ -52,7 +52,7 @@ class TouchService : AccessibilityService() {
         val path = Path()
         path.moveTo(px, py)
         path.lineTo(x, ey)
-        dispatch(path, 6L + rnd.nextInt(6))
+        dispatch(path, 5L + rnd.nextInt(5))
     }
 
     fun holdAt(x: Float, y: Float) {
@@ -60,13 +60,13 @@ class TouchService : AccessibilityService() {
         val path = Path()
         path.moveTo(x, y)
         path.lineTo(x + 0.2f, y + 0.2f)
-        dispatch(path, 8L + rnd.nextInt(4))
+        dispatch(path, 7L + rnd.nextInt(3))
     }
 
     private fun dispatch(path: Path, durMs: Long) {
-        val stroke = GestureDescription.StrokeDescription(path, 0L, durMs)
+        val s = GestureDescription.StrokeDescription(path, 0L, durMs)
         val b = GestureDescription.Builder()
-        b.addStroke(stroke)
+        b.addStroke(s)
         dispatchGesture(b.build(), null, null)
     }
 }
