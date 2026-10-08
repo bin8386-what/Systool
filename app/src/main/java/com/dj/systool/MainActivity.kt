@@ -1,12 +1,17 @@
 package com.dj.systool
 
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.ImageDecoder
+import android.graphics.drawable.AnimatedImageDrawable
 import android.graphics.drawable.GradientDrawable
 import android.net.TrafficStats
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -38,10 +43,15 @@ class MainActivity : AppCompatActivity() {
     var lastTx = 0L
     var lastMs = 0L
 
-    var tvCpu: TextView? = null
-    var tvRam: TextView? = null
-    var tvNet: TextView? = null
-    var root: LinearLayout? = null
+    lateinit var tvCpu: TextView
+    lateinit var tvRam: TextView
+    lateinit var tvNet: TextView
+    lateinit var root: LinearLayout
+
+    var anim: ObjectAnimator? = null
+    var animDraw: AnimatedImageDrawable? = null
+
+    val PICK_GIF = 2002
 
     val colors = arrayOf(
         "#0a0618", "#000000", "#0d1b2a",
@@ -50,9 +60,9 @@ class MainActivity : AppCompatActivity() {
 
     val tick = object : Runnable {
         override fun run() {
-            tvCpu?.text = cpuPct().toString() + "%"
-            tvRam?.text = ramPct().toString() + "%"
-            tvNet?.text = netPct().toString() + "%"
+            tvCpu.text = cpuPct().toString() + "%"
+            tvRam.text = ramPct().toString() + "%"
+            tvNet.text = netPct().toString() + "%"
             h?.postDelayed(this, 1500L)
         }
     }
@@ -63,8 +73,8 @@ class MainActivity : AppCompatActivity() {
         h = Handler(Looper.getMainLooper())
 
         root = LinearLayout(this)
-        root?.orientation = LinearLayout.VERTICAL
-        root?.setPadding(30, 30, 30, 30)
+        root.orientation = LinearLayout.VERTICAL
+        root.setPadding(30, 30, 30, 30)
 
         val scroll = ScrollView(this)
         scroll.addView(root)
@@ -80,7 +90,12 @@ class MainActivity : AppCompatActivity() {
         addColorPicker()
         addSpace()
         addOnOff()
-        applyBg()
+
+        if (Config.bgUri.isNotEmpty()) {
+            loadGif()
+        } else {
+            applyBg()
+        }
     }
 
     fun addTitle() {
@@ -90,7 +105,7 @@ class MainActivity : AppCompatActivity() {
         t.textSize = 26f
         t.gravity = Gravity.CENTER
         t.setPadding(0, 20, 0, 10)
-        root?.addView(t)
+        root.addView(t)
 
         val v = TextView(this)
         v.text = "v2"
@@ -98,7 +113,7 @@ class MainActivity : AppCompatActivity() {
         v.textSize = 14f
         v.gravity = Gravity.CENTER
         v.setPadding(0, 0, 0, 10)
-        root?.addView(v)
+        root.addView(v)
 
         val m = TextView(this)
         m.text = "Made by Nguyen"
@@ -106,7 +121,7 @@ class MainActivity : AppCompatActivity() {
         m.textSize = 12f
         m.gravity = Gravity.CENTER
         m.setPadding(0, 0, 0, 30)
-        root?.addView(m)
+        root.addView(m)
     }
 
     fun addCircles() {
@@ -119,7 +134,7 @@ class MainActivity : AppCompatActivity() {
         row.addView(mkCol("CPU", tvCpu))
         row.addView(mkCol("RAM", tvRam))
         row.addView(mkCol("NET", tvNet))
-        root?.addView(row)
+        root.addView(row)
     }
 
     fun mkCircle(txt: String): TextView {
@@ -180,7 +195,7 @@ class MainActivity : AppCompatActivity() {
             }
             Config.save()
         }
-        root?.addView(sw)
+        root.addView(sw)
     }
 
     fun addSpinner() {
@@ -197,7 +212,7 @@ class MainActivity : AppCompatActivity() {
             }
             override fun onNothingSelected(p: AdapterView<*>?) {}
         }
-        root?.addView(sp)
+        root.addView(sp)
     }
 
     fun addColorPicker() {
@@ -206,7 +221,7 @@ class MainActivity : AppCompatActivity() {
         label.setTextColor(Color.parseColor("#AAAAAA"))
         label.textSize = 12f
         label.setPadding(0, 0, 0, 12)
-        root?.addView(label)
+        root.addView(label)
 
         val row = LinearLayout(this)
         row.orientation = LinearLayout.HORIZONTAL
@@ -222,20 +237,134 @@ class MainActivity : AppCompatActivity() {
             gd.setStroke(3, Color.parseColor("#444444"))
             b.background = gd
             b.setOnClickListener {
+                stopGif()
                 Config.bgColor = c
+                Config.bgUri = ""
                 Config.save()
                 applyBg()
             }
             row.addView(b)
         }
-        root?.addView(row)
+        root.addView(row)
+
+        val rb = Button(this)
+        rb.text = "RAINBOW"
+        rb.setTextColor(Color.WHITE)
+        rb.textSize = 14f
+        rb.setBackgroundColor(Color.parseColor("#333333"))
+        rb.layoutParams = LinearLayout.LayoutParams(-1, 100)
+        rb.setOnClickListener {
+            stopGif()
+            Config.bgColor = "rainbow"
+            Config.bgUri = ""
+            Config.save()
+            startRainbow()
+        }
+        root.addView(rb)
+
+        val gb = Button(this)
+        gb.text = "CHON ANH DONG (GIF)"
+        gb.setTextColor(Color.WHITE)
+        gb.textSize = 14f
+        gb.setBackgroundColor(Color.parseColor("#333333"))
+        gb.layoutParams = LinearLayout.LayoutParams(-1, 100)
+        gb.setOnClickListener { pickGif() }
+        root.addView(gb)
+    }
+
+    fun pickGif() {
+        val i = Intent(Intent.ACTION_PICK)
+        i.type = "image/*"
+        startActivityForResult(i, PICK_GIF)
+    }
+
+    override fun onActivityResult(req: Int, res: Int, data: Intent?) {
+        super.onActivityResult(req, res, data)
+        if (req == PICK_GIF && res == RESULT_OK) {
+            val uri = data?.data ?: return
+            try {
+                contentResolver.takePersistableUriPermission(uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            } catch (e: Exception) {}
+            Config.bgUri = uri.toString()
+            Config.save()
+            loadGif()
+        }
+    }
+
+    fun loadGif() {
+        if (Config.bgUri.isEmpty()) {
+            applyBg()
+            return
+        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            applyBg()
+            return
+        }
+        try {
+            stopRainbow()
+            stopGif()
+            val uri = Uri.parse(Config.bgUri)
+            val src = ImageDecoder.createSource(contentResolver, uri)
+            val dr = ImageDecoder.decodeDrawable(src)
+            if (dr is AnimatedImageDrawable) {
+                dr.repeatCount = AnimatedImageDrawable.REPEAT_INFINITE
+                animDraw = dr
+                root.background = dr
+                dr.start()
+            } else {
+                root.background = dr
+            }
+        } catch (e: Exception) {
+            applyBg()
+        }
+    }
+
+    fun stopGif() {
+        animDraw?.stop()
+        animDraw = null
+    }
+
+    fun startRainbow() {
+        stopRainbow()
+        val r = root
+        anim = ObjectAnimator.ofFloat(0f, 360f)
+        anim?.duration = 6000L
+        anim?.repeatCount = ValueAnimator.INFINITE
+        anim?.addUpdateListener { a ->
+            val deg = a.animatedValue as Float
+            val hue = deg % 360f
+            val c1 = Color.HSVToColor(
+                floatArrayOf(hue, 0.6f, 0.12f))
+            val c2 = Color.HSVToColor(
+                floatArrayOf((hue + 60f) % 360f, 0.6f, 0.08f))
+            val c3 = Color.HSVToColor(
+                floatArrayOf((hue + 120f) % 360f, 0.6f, 0.12f))
+            val gd = GradientDrawable(
+                GradientDrawable.Orientation.TL_BR,
+                intArrayOf(c1, c2, c3)
+            )
+            r.background = gd
+        }
+        anim?.start()
+    }
+
+    fun stopRainbow() {
+        anim?.cancel()
+        anim = null
     }
 
     fun applyBg() {
+        stopRainbow()
+        stopGif()
+        if (Config.bgColor == "rainbow") {
+            startRainbow()
+            return
+        }
         try {
-            root?.setBackgroundColor(Color.parseColor(Config.bgColor))
+            root.setBackgroundColor(Color.parseColor(Config.bgColor))
         } catch (e: Exception) {
-            root?.setBackgroundColor(Color.parseColor("#0a0618"))
+            root.setBackgroundColor(Color.parseColor("#0a0618"))
         }
     }
 
@@ -246,7 +375,7 @@ class MainActivity : AppCompatActivity() {
         btnOn.textSize = 18f
         btnOn.setBackgroundColor(Color.parseColor("#22C55E"))
         btnOn.layoutParams = LinearLayout.LayoutParams(-1, 160)
-        root?.addView(btnOn)
+        root.addView(btnOn)
 
         val btnOff = Button(this)
         btnOff.text = "OFF"
@@ -254,11 +383,9 @@ class MainActivity : AppCompatActivity() {
         btnOff.textSize = 18f
         btnOff.setBackgroundColor(Color.parseColor("#333333"))
         btnOff.layoutParams = LinearLayout.LayoutParams(-1, 160)
-        root?.addView(btnOff)
+        root.addView(btnOff)
 
-        btnOn.setOnClickListener {
-            startOn(btnOn, btnOff)
-        }
+        btnOn.setOnClickListener { startOn(btnOn, btnOff) }
         btnOff.setOnClickListener {
             stopService(Intent(this, CoreService::class.java))
             running = false
@@ -270,20 +397,23 @@ class MainActivity : AppCompatActivity() {
     fun startOn(btnOn: Button, btnOff: Button) {
         val ov = Settings.canDrawOverlays(this)
         if (!ov) {
-            Toast.makeText(this, "Cap quyen Overlay", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Cap quyen Overlay",
+                Toast.LENGTH_LONG).show()
             val i = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
             i.data = Uri.parse("package:" + packageName)
             startActivity(i)
             return
         }
         if (TouchService.instance == null) {
-            Toast.makeText(this, "Bat Accessibility", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Bat Accessibility",
+                Toast.LENGTH_LONG).show()
             startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
             return
         }
         val ws = Settings.System.canWrite(this)
         if (!ws) {
-            Toast.makeText(this, "Cap quyen Write", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Cap quyen Write",
+                Toast.LENGTH_LONG).show()
             val i = Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS)
             i.data = Uri.parse("package:" + packageName)
             startActivity(i)
@@ -309,17 +439,24 @@ class MainActivity : AppCompatActivity() {
     fun addSpace() {
         val v = View(this)
         v.layoutParams = LinearLayout.LayoutParams(-1, 30)
-        root?.addView(v)
+        root.addView(v)
     }
 
     override fun onResume() {
         super.onResume()
         h?.post(tick)
+        if (Config.bgUri.isNotEmpty()) {
+            loadGif()
+        } else if (Config.bgColor == "rainbow") {
+            startRainbow()
+        }
     }
 
     override fun onPause() {
         super.onPause()
         h?.removeCallbacks(tick)
+        stopRainbow()
+        animDraw?.stop()
     }
 
     fun cpuPct(): Int {
