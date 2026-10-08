@@ -1,16 +1,12 @@
 package com.dj.systool
 
-import android.animation.ValueAnimator
 import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
-import android.graphics.ImageDecoder
-import android.graphics.drawable.AnimatedImageDrawable
 import android.graphics.drawable.GradientDrawable
 import android.net.TrafficStats
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -47,14 +43,13 @@ class MainActivity : AppCompatActivity() {
     lateinit var tvNet: TextView
     lateinit var root: LinearLayout
 
-    var anim: ValueAnimator? = null
-    var animDraw: AnimatedImageDrawable? = null
-
-    val PICK_GIF = 2002
-
     val colors = arrayOf(
         "#0a0618", "#000000", "#0d1b2a",
         "#1a0a2e", "#2a0a1a", "#0a1a0a"
+    )
+    val cnames = arrayOf(
+        "TIM", "DEN", "XANH BIEN",
+        "TIM SAM", "DO DO", "XANH REU"
     )
 
     val tick = object : Runnable {
@@ -62,7 +57,7 @@ class MainActivity : AppCompatActivity() {
             tvCpu.text = cpuPct().toString() + "%"
             tvRam.text = ramPct().toString() + "%"
             tvNet.text = netPct().toString() + "%"
-            h?.postDelayed(this, 1500L)
+            h?.postDelayed(this, 1200L)
         }
     }
 
@@ -89,12 +84,7 @@ class MainActivity : AppCompatActivity() {
         addColorPicker()
         addSpace()
         addOnOff()
-
-        if (Config.bgUri.isNotEmpty()) {
-            loadGif()
-        } else {
-            applyBg()
-        }
+        applyBg()
     }
 
     fun addTitle() {
@@ -107,7 +97,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(t)
 
         val v = TextView(this)
-        v.text = "v2"
+        v.text = "version v2"
         v.setTextColor(Color.parseColor("#666666"))
         v.textSize = 14f
         v.gravity = Gravity.CENTER
@@ -143,7 +133,7 @@ class MainActivity : AppCompatActivity() {
         t.textSize = 16f
         t.gravity = Gravity.CENTER
         t.setBackgroundColor(Color.parseColor("#1A0E2A"))
-        t.layoutParams = LinearLayout.LayoutParams(180, 180)
+        t.layoutParams = LinearLayout.LayoutParams(200, 200)
         return t
     }
 
@@ -222,144 +212,51 @@ class MainActivity : AppCompatActivity() {
         label.setPadding(0, 0, 0, 12)
         root.addView(label)
 
-        val row = LinearLayout(this)
-        row.orientation = LinearLayout.HORIZONTAL
-        row.gravity = Gravity.CENTER
-        for (c in colors) {
+        val row1 = LinearLayout(this)
+        row1.orientation = LinearLayout.HORIZONTAL
+        row1.gravity = Gravity.CENTER
+        val row2 = LinearLayout(this)
+        row2.orientation = LinearLayout.HORIZONTAL
+        row2.gravity = Gravity.CENTER
+
+        for (i in colors.indices) {
+            val cell = LinearLayout(this)
+            cell.orientation = LinearLayout.VERTICAL
+            cell.gravity = Gravity.CENTER
+            val lp = LinearLayout.LayoutParams(0, -2, 1f)
+            cell.layoutParams = lp
+
             val b = View(this)
-            val lp = LinearLayout.LayoutParams(0, 120, 1f)
-            lp.setMargins(6, 6, 6, 6)
-            b.layoutParams = lp
+            val blp = LinearLayout.LayoutParams(140, 140)
+            blp.setMargins(10, 10, 10, 6)
+            b.layoutParams = blp
             val gd = GradientDrawable()
-            gd.setColor(Color.parseColor(c))
-            gd.cornerRadius = 20f
-            gd.setStroke(3, Color.parseColor("#444444"))
+            gd.setColor(Color.parseColor(colors[i]))
+            gd.cornerRadius = 30f
+            gd.setStroke(5, Color.parseColor("#888888"))
             b.background = gd
             b.setOnClickListener {
-                stopGif()
-                Config.bgColor = c
-                Config.bgUri = ""
+                Config.bgColor = colors[i]
                 Config.save()
                 applyBg()
             }
-            row.addView(b)
+            cell.addView(b)
+
+            val n = TextView(this)
+            n.text = cnames[i]
+            n.setTextColor(Color.parseColor("#CCCCCC"))
+            n.textSize = 9f
+            n.gravity = Gravity.CENTER
+            cell.addView(n)
+
+            if (i < 3) row1.addView(cell)
+            else row2.addView(cell)
         }
-        root.addView(row)
-
-        val rb = Button(this)
-        rb.text = "RAINBOW"
-        rb.setTextColor(Color.WHITE)
-        rb.textSize = 14f
-        rb.setBackgroundColor(Color.parseColor("#333333"))
-        rb.layoutParams = LinearLayout.LayoutParams(-1, 100)
-        rb.setOnClickListener {
-            stopGif()
-            Config.bgColor = "rainbow"
-            Config.bgUri = ""
-            Config.save()
-            startRainbow()
-        }
-        root.addView(rb)
-
-        val gb = Button(this)
-        gb.text = "CHON ANH DONG (GIF)"
-        gb.setTextColor(Color.WHITE)
-        gb.textSize = 14f
-        gb.setBackgroundColor(Color.parseColor("#333333"))
-        gb.layoutParams = LinearLayout.LayoutParams(-1, 100)
-        gb.setOnClickListener { pickGif() }
-        root.addView(gb)
-    }
-
-    fun pickGif() {
-        val i = Intent(Intent.ACTION_PICK)
-        i.type = "image/*"
-        startActivityForResult(i, PICK_GIF)
-    }
-
-    override fun onActivityResult(req: Int, res: Int, data: Intent?) {
-        super.onActivityResult(req, res, data)
-        if (req == PICK_GIF && res == RESULT_OK) {
-            val uri = data?.data ?: return
-            try {
-                contentResolver.takePersistableUriPermission(uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            } catch (e: Exception) {}
-            Config.bgUri = uri.toString()
-            Config.save()
-            loadGif()
-        }
-    }
-
-    fun loadGif() {
-        if (Config.bgUri.isEmpty()) {
-            applyBg()
-            return
-        }
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
-            applyBg()
-            return
-        }
-        try {
-            stopRainbow()
-            stopGif()
-            val uri = Uri.parse(Config.bgUri)
-            val src = ImageDecoder.createSource(contentResolver, uri)
-            val dr = ImageDecoder.decodeDrawable(src)
-            if (dr is AnimatedImageDrawable) {
-                dr.repeatCount = AnimatedImageDrawable.REPEAT_INFINITE
-                animDraw = dr
-                root.background = dr
-                dr.start()
-            } else {
-                root.background = dr
-            }
-        } catch (e: Exception) {
-            applyBg()
-        }
-    }
-
-    fun stopGif() {
-        animDraw?.stop()
-        animDraw = null
-    }
-
-    fun startRainbow() {
-        stopRainbow()
-        val r = root
-        anim = ValueAnimator.ofFloat(0f, 360f)
-        anim?.duration = 6000L
-        anim?.repeatCount = ValueAnimator.INFINITE
-        anim?.addUpdateListener { a ->
-            val deg = a.animatedValue as Float
-            val hue = deg % 360f
-            val c1 = Color.HSVToColor(
-                floatArrayOf(hue, 0.6f, 0.12f))
-            val c2 = Color.HSVToColor(
-                floatArrayOf((hue + 60f) % 360f, 0.6f, 0.08f))
-            val c3 = Color.HSVToColor(
-                floatArrayOf((hue + 120f) % 360f, 0.6f, 0.12f))
-            val gd = GradientDrawable(
-                GradientDrawable.Orientation.TL_BR,
-                intArrayOf(c1, c2, c3)
-            )
-            r.background = gd
-        }
-        anim?.start()
-    }
-
-    fun stopRainbow() {
-        anim?.cancel()
-        anim = null
+        root.addView(row1)
+        root.addView(row2)
     }
 
     fun applyBg() {
-        stopRainbow()
-        stopGif()
-        if (Config.bgColor == "rainbow") {
-            startRainbow()
-            return
-        }
         try {
             root.setBackgroundColor(Color.parseColor(Config.bgColor))
         } catch (e: Exception) {
@@ -371,17 +268,17 @@ class MainActivity : AppCompatActivity() {
         val btnOn = Button(this)
         btnOn.text = "ON"
         btnOn.setTextColor(Color.WHITE)
-        btnOn.textSize = 18f
+        btnOn.textSize = 20f
         btnOn.setBackgroundColor(Color.parseColor("#22C55E"))
-        btnOn.layoutParams = LinearLayout.LayoutParams(-1, 160)
+        btnOn.layoutParams = LinearLayout.LayoutParams(-1, 180)
         root.addView(btnOn)
 
         val btnOff = Button(this)
         btnOff.text = "OFF"
         btnOff.setTextColor(Color.WHITE)
-        btnOff.textSize = 18f
+        btnOff.textSize = 20f
         btnOff.setBackgroundColor(Color.parseColor("#333333"))
-        btnOff.layoutParams = LinearLayout.LayoutParams(-1, 160)
+        btnOff.layoutParams = LinearLayout.LayoutParams(-1, 180)
         root.addView(btnOff)
 
         btnOn.setOnClickListener { startOn(btnOn, btnOff) }
@@ -444,18 +341,11 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         h?.post(tick)
-        if (Config.bgUri.isNotEmpty()) {
-            loadGif()
-        } else if (Config.bgColor == "rainbow") {
-            startRainbow()
-        }
     }
 
     override fun onPause() {
         super.onPause()
         h?.removeCallbacks(tick)
-        stopRainbow()
-        animDraw?.stop()
     }
 
     fun cpuPct(): Int {
