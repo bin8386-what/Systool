@@ -1,6 +1,5 @@
 package com.dj.systool
 
-import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.app.ActivityManager
 import android.content.Context
@@ -48,7 +47,7 @@ class MainActivity : AppCompatActivity() {
     lateinit var tvNet: TextView
     lateinit var root: LinearLayout
 
-    var anim: ObjectAnimator? = null
+    var anim: ValueAnimator? = null
     var animDraw: AnimatedImageDrawable? = null
 
     val PICK_GIF = 2002
@@ -328,7 +327,7 @@ class MainActivity : AppCompatActivity() {
     fun startRainbow() {
         stopRainbow()
         val r = root
-        anim = ObjectAnimator.ofFloat(0f, 360f)
+        anim = ValueAnimator.ofFloat(0f, 360f)
         anim?.duration = 6000L
         anim?.repeatCount = ValueAnimator.INFINITE
         anim?.addUpdateListener { a ->
