@@ -29,213 +29,269 @@ import java.io.RandomAccessFile
 
 class MainActivity : AppCompatActivity() {
 
-    private var running = false
-    private val h = Handler(Looper.getMainLooper())
+    var running = false
+    var h: Handler? = null
 
-    private var lastCpuTotal = 0L
-    private var lastCpuIdle = 0L
-    private var lastRx = 0L
-    private var lastTx = 0L
-    private var lastMs = 0L
+    var lastCpuTotal = 0L
+    var lastCpuIdle = 0L
+    var lastRx = 0L
+    var lastTx = 0L
+    var lastMs = 0L
 
-    private lateinit var tvCpu: TextView
-    private lateinit var tvRam: TextView
-    private lateinit var tvNet: TextView
-    private lateinit var rootLayout: LinearLayout
+    var tvCpu: TextView? = null
+    var tvRam: TextView? = null
+    var tvNet: TextView? = null
+    var root: LinearLayout? = null
 
-    private val PICK_IMG = 1001
+    val PICK_IMG = 1001
 
-    private val tick = object : Runnable {
+    val tick = object : Runnable {
         override fun run() {
-            tvCpu.text = cpuPct().toString() + "%"
-            tvRam.text = ramPct().toString() + "%"
-            tvNet.text = netPct().toString() + "%"
-            h.postDelayed(this, 1500L)
+            tvCpu?.text = cpuPct().toString() + "%"
+            tvRam?.text = ramPct().toString() + "%"
+            tvNet?.text = netPct().toString() + "%"
+            h?.postDelayed(this, 1500L)
         }
     }
 
     override fun onCreate(s: Bundle?) {
         super.onCreate(s)
         Config.init(this)
+        h = Handler(Looper.getMainLooper())
 
-        rootLayout = LinearLayout(this)
-        rootLayout.orientation = LinearLayout.VERTICAL
-        rootLayout.setPadding(30, 30, 30, 30)
-        rootLayout.setBackgroundColor(Color.parseColor("#0a0618"))
+        root = LinearLayout(this)
+        root?.orientation = LinearLayout.VERTICAL
+        root?.setPadding(30, 30, 30, 30)
+        root?.setBackgroundColor(Color.parseColor("#0a0618"))
 
         val scroll = ScrollView(this)
-        scroll.addView(rootLayout)
+        scroll.addView(root)
         setContentView(scroll)
 
+        addTitle()
+        addCircles()
+        addSpace()
+        addAllSwitches()
+        addSpace()
+        addSpinner()
+        addSpace()
+        addBgButtons()
+        addSpace()
+        addOnOff()
+        loadBg()
+    }
+
+    fun addTitle() {
+        val t = TextView(this)
+        t.text = "HEADLOCK PLUS"
+        t.setTextColor(Color.parseColor("#22C55E"))
+        t.textSize = 26f
+        t.gravity = Gravity.CENTER
+        t.setPadding(0, 20, 0, 10)
+        root?.addView(t)
+
+        val v = TextView(this)
+        v.text = "v2"
+        v.setTextColor(Color.parseColor("#666666"))
+        v.textSize = 14f
+        v.gravity = Gravity.CENTER
+        v.setPadding(0, 0, 0, 10)
+        root?.addView(v)
+
+        val m = TextView(this)
+        m.text = "Made by Nguyen"
+        m.setTextColor(Color.parseColor("#888888"))
+        m.textSize = 12f
+        m.gravity = Gravity.CENTER
+        m.setPadding(0, 0, 0, 30)
+        root?.addView(m)
+    }
+
+    fun addCircles() {
         val row = LinearLayout(this)
         row.orientation = LinearLayout.HORIZONTAL
         row.gravity = Gravity.CENTER
-
-        tvCpu = makeCircle("0%")
-        tvRam = makeCircle("0%")
-        tvNet = makeCircle("0%")
-
-        row.addView(makeCol("CPU", tvCpu))
-        row.addView(makeCol("RAM", tvRam))
-        row.addView(makeCol("NET", tvNet))
-        rootLayout.addView(row)
-
-        addSpace()
-
-        addSwitch("AIMLOCK", Config.aimlock, object : (Boolean) -> Unit {
-            override fun invoke(v: Boolean) { Config.aimlock = v; Config.save() }
-        })
-        addSwitch("BOOST RAM", Config.boostRam, object : (Boolean) -> Unit {
-            override fun invoke(v: Boolean) { Config.boostRam = v; Config.save() }
-        })
-        addSwitch("SENSITIVITY", Config.antiShake, object : (Boolean) -> Unit {
-            override fun invoke(v: Boolean) { Config.antiShake = v; Config.save() }
-        })
-        addSwitch("FIX RUNG", Config.fixRung, object : (Boolean) -> Unit {
-            override fun invoke(v: Boolean) { Config.fixRung = v; Config.save() }
-        })
-        addSwitch("TOI UU", Config.optimize, object : (Boolean) -> Unit {
-            override fun invoke(v: Boolean) { Config.optimize = v; Config.save() }
-        })
-        addSwitch("BAM DAU", Config.headTrack, object : (Boolean) -> Unit {
-            override fun invoke(v: Boolean) { Config.headTrack = v; Config.save() }
-        })
-        addSwitch("ANTIBAN", Config.antiban, object : (Boolean) -> Unit {
-            override fun invoke(v: Boolean) { Config.antiban = v; Config.save() }
-        })
-        addSwitch("BOOST FPS", Config.boostFps, object : (Boolean) -> Unit {
-            override fun invoke(v: Boolean) { Config.boostFps = v; Config.save() }
-        })
-
-        addSpace()
-
-        val gameSpinner = Spinner(this)
-        val games = arrayOf("Free Fire", "Free Fire MAX", "Ca hai")
-        gameSpinner.adapter = ArrayAdapter(this,
-            android.R.layout.simple_spinner_dropdown_item, games)
-        gameSpinner.setSelection(Config.gameIndex)
-        gameSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(p: AdapterView<*>?, view: View?, pos: Int, id: Long) {
-                Config.gameIndex = pos
-                Config.save()
-            }
-            override fun onNothingSelected(p: AdapterView<*>?) {}
-        }
-        rootLayout.addView(gameSpinner)
-
-        addSpace()
-
-        val btnPick = makeBtn("DOI ANH NEN", "#2a2a3a")
-        btnPick.setOnClickListener { pickImage() }
-        rootLayout.addView(btnPick)
-
-        val btnReset = makeBtn("MAC DINH", "#2a2a3a")
-        btnReset.setOnClickListener {
-            Config.bgUri = ""
-            Config.save()
-            loadBg()
-        }
-        rootLayout.addView(btnReset)
-
-        addSpace()
-
-        val btnOn = makeBtn("ON", "#22C55E")
-        val btnOff = makeBtn("OFF", "#EF4444")
-        rootLayout.addView(btnOn)
-        rootLayout.addView(btnOff)
-        paintBtns(btnOn, btnOff)
-
-        loadBg()
-
-        btnOn.setOnClickListener {
-            if (!Settings.canDrawOverlays(this)) {
-                Toast.makeText(this, "Cap quyen Overlay", Toast.LENGTH_LONG).show()
-                startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:" + packageName)))
-                return@setOnClickListener
-            }
-            if (TouchService.instance == null) {
-                Toast.makeText(this, "Bat Accessibility", Toast.LENGTH_LONG).show()
-                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
-                return@setOnClickListener
-            }
-            if (!Settings.System.canWrite(this)) {
-                Toast.makeText(this, "Cap quyen Write", Toast.LENGTH_LONG).show()
-                startActivity(Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS,
-                    Uri.parse("package:" + packageName)))
-                return@setOnClickListener
-            }
-            ContextCompat.startForegroundService(this,
-                Intent(this, CoreService::class.java))
-            running = true
-            paintBtns(btnOn, btnOff)
-            Toast.makeText(this, "Da BAT v2", Toast.LENGTH_SHORT).show()
-        }
-
-        btnOff.setOnClickListener {
-            stopService(Intent(this, CoreService::class.java))
-            running = false
-            paintBtns(btnOn, btnOff)
-            Toast.makeText(this, "Da TAT", Toast.LENGTH_SHORT).show()
-        }
+        tvCpu = mkCircle("0%")
+        tvRam = mkCircle("0%")
+        tvNet = mkCircle("0%")
+        row.addView(mkCol("CPU", tvCpu))
+        row.addView(mkCol("RAM", tvRam))
+        row.addView(mkCol("NET", tvNet))
+        root?.addView(row)
     }
 
-    private fun makeCircle(txt: String): TextView {val t = TextView(this)
+    fun mkCircle(txt: String): TextView {
+        val t = TextView(this)
         t.text = txt
         t.setTextColor(Color.WHITE)
-        t.textSize = 17f
+        t.textSize = 16f
         t.gravity = Gravity.CENTER
         t.setBackgroundColor(Color.parseColor("#1A0E2A"))
-        t.layoutParams = LinearLayout.LayoutParams(200, 200)
+        t.layoutParams = LinearLayout.LayoutParams(180, 180)
         return t
     }
 
-    private fun makeCol(label: String, circle: TextView): LinearLayout {
+    fun mkCol(label: String, circle: TextView): LinearLayout {
         val c = LinearLayout(this)
         c.orientation = LinearLayout.VERTICAL
         c.gravity = Gravity.CENTER
-        c.layoutParams = LinearLayout.LayoutParams(0,
-            LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        val lp = LinearLayout.LayoutParams(0, -2, 1f)
+        c.layoutParams = lp
         c.addView(circle)
         val t = TextView(this)
         t.text = label
         t.setTextColor(Color.parseColor("#AAAAAA"))
-        t.textSize = 12f
+        t.textSize = 11f
         t.setPadding(0, 10, 0, 0)
         c.addView(t)
         return c
     }
 
-    private fun addSwitch(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+    fun addAllSwitches() {
+        mkSwitch("AIMLOCK PLUS", Config.aimlock, 0)
+        mkSwitch("BOOST RAM", Config.boostRam, 1)
+        mkSwitch("SENSITIVITY", Config.antiShake, 2)
+        mkSwitch("FIX RUNG", Config.fixRung, 3)
+        mkSwitch("TOI UU THIET BI", Config.optimize, 4)
+        mkSwitch("BAM DAU", Config.headTrack, 5)
+        mkSwitch("ANTIBAN", Config.antiban, 6)
+        mkSwitch("BOOST FPS", Config.boostFps, 7)
+    }
+
+    fun mkSwitch(label: String, checked: Boolean, id: Int) {
         val sw = Switch(this)
         sw.text = label
         sw.setTextColor(Color.WHITE)
         sw.textSize = 15f
         sw.isChecked = checked
         sw.setPadding(20, 20, 20, 20)
-        sw.setOnCheckedChangeListener { _: CompoundButton, v: Boolean -> onChange(v) }
-        rootLayout.addView(sw)
+        sw.setOnCheckedChangeListener { _: CompoundButton, v: Boolean ->
+            when (id) {
+                0 -> Config.aimlock = v
+                1 -> Config.boostRam = v
+                2 -> Config.antiShake = v
+                3 -> Config.fixRung = v
+                4 -> Config.optimize = v
+                5 -> Config.headTrack = v
+                6 -> Config.antiban = v
+                7 -> Config.boostFps = v
+            }
+            Config.save()
+        }
+        root?.addView(sw)
     }
 
-    private fun makeBtn(text: String, colorHex: String): Button {
-        val b = Button(this)
-        b.text = text
-        b.setTextColor(Color.WHITE)
-        b.textSize = 16f
-        b.setBackgroundColor(Color.parseColor(colorHex))
-        b.layoutParams = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, 140)
-        return b
+    fun addSpinner() {
+        val sp = Spinner(this)
+        val games = arrayOf("Free Fire", "Free Fire MAX", "Ca hai")
+        sp.adapter = ArrayAdapter(this,
+            android.R.layout.simple_spinner_dropdown_item, games)
+        sp.setSelection(Config.gameIndex)
+        sp.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(p: AdapterView<*>?,
+                view: View?, pos: Int, id: Long) {
+                Config.gameIndex = pos
+                Config.save()
+            }
+            override fun onNothingSelected(p: AdapterView<*>?) {}
+        }
+        root?.addView(sp)
     }
 
-    private fun addSpace() {
+    fun addBgButtons() {
+        val b1 = Button(this)
+        b1.text = "DOI ANH NEN"
+        b1.setTextColor(Color.WHITE)
+        b1.setBackgroundColor(Color.parseColor("#2a2a3a"))
+        b1.setOnClickListener { pickImg() }
+        root?.addView(b1)
+
+        val b2 = Button(this)
+        b2.text = "MAC DINH"
+        b2.setTextColor(Color.WHITE)
+        b2.setBackgroundColor(Color.parseColor("#2a2a3a"))
+        b2.setOnClickListener {
+            Config.bgUri = ""
+            Config.save()
+            loadBg()
+        }
+        root?.addView(b2)
+    }
+
+    fun addOnOff() {
+        val btnOn = Button(this)
+        btnOn.text = "ON"
+        btnOn.setTextColor(Color.WHITE)
+        btnOn.textSize = 18f
+        btnOn.setBackgroundColor(Color.parseColor("#22C55E"))
+        btnOn.layoutParams = LinearLayout.LayoutParams(-1, 160)
+        root?.addView(btnOn)
+
+        val btnOff = Button(this)
+        btnOff.text = "OFF"
+        btnOff.setTextColor(Color.WHITE)
+        btnOff.textSize = 18f
+        btnOff.setBackgroundColor(Color.parseColor("#333333"))
+        btnOff.layoutParams = LinearLayout.LayoutParams(-1, 160)
+        root?.addView(btnOff)
+
+        btnOn.setOnClickListener {
+            startOn(btnOn, btnOff)
+        }
+        btnOff.setOnClickListener {
+            stopService(Intent(this, CoreService::class.java))
+            running = false
+            paint(btnOn, btnOff)
+            Toast.makeText(this, "Da TAT", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun startOn(btnOn: Button, btnOff: Button) {
+        val ov = Settings.canDrawOverlays(this)
+        if (!ov) {
+            Toast.makeText(this, "Cap quyen Overlay", Toast.LENGTH_LONG).show()
+            val i = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
+            i.data = Uri.parse("package:" + packageName)
+            startActivity(i)
+            return
+        }
+        if (TouchService.instance == null) {
+            Toast.makeText(this, "Bat Accessibility", Toast.LENGTH_LONG).show()
+            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            return
+        }
+        val ws = Settings.System.canWrite(this)
+        if (!ws) {
+            Toast.makeText(this, "Cap quyen Write", Toast.LENGTH_LONG).show()
+            val i = Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS)
+            i.data = Uri.parse("package:" + packageName)
+            startActivity(i)
+            return
+        }
+        ContextCompat.startForegroundService(this,
+            Intent(this, CoreService::class.java))
+        running = true
+        paint(btnOn, btnOff)
+        Toast.makeText(this, "Da BAT v2", Toast.LENGTH_SHORT).show()
+    }
+
+    fun paint(on: Button, off: Button) {
+        if (running) {
+            on.setBackgroundColor(Color.parseColor("#22C55E"))
+            off.setBackgroundColor(Color.parseColor("#333333"))
+        } else {
+            on.setBackgroundColor(Color.parseColor("#333333"))
+            off.setBackgroundColor(Color.parseColor("#EF4444"))
+        }
+    }
+
+    fun addSpace() {
         val v = View(this)
-        v.layoutParams = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT, 30)
-        rootLayout.addView(v)
+        v.layoutParams = LinearLayout.LayoutParams(-1, 30)
+        root?.addView(v)
     }
 
-    private fun pickImage() {
+    fun pickImg() {
         val i = Intent(Intent.ACTION_PICK)
         i.type = "image/*"
         startActivityForResult(i, PICK_IMG)
@@ -255,9 +311,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun loadBg() {
+    fun loadBg() {
+        val r = root ?: return
         if (Config.bgUri.isEmpty()) {
-            rootLayout.setBackgroundColor(Color.parseColor("#0a0618"))
+            r.setBackgroundColor(Color.parseColor("#0a0618"))
             return
         }
         try {
@@ -265,33 +322,24 @@ class MainActivity : AppCompatActivity() {
             val input = contentResolver.openInputStream(uri)
             val d: Drawable? = Drawable.createFromStream(input, "bg")
             input?.close()
-            if (d != null) rootLayout.background = d
-            else rootLayout.setBackgroundColor(Color.parseColor("#0a0618"))
-        } catch (e: Exception) {rootLayout.setBackgroundColor(Color.parseColor("#0a0618"))
+            if (d != null) r.background = d
+            else r.setBackgroundColor(Color.parseColor("#0a0618"))
+        } catch (e: Exception) {
+            r.setBackgroundColor(Color.parseColor("#0a0618"))
         }
     }
 
     override fun onResume() {
         super.onResume()
-        h.post(tick)
+        h?.post(tick)
     }
 
     override fun onPause() {
         super.onPause()
-        h.removeCallbacks(tick)
+        h?.removeCallbacks(tick)
     }
 
-    private fun paintBtns(on: Button, off: Button) {
-        if (running) {
-            on.setBackgroundColor(Color.parseColor("#22C55E"))
-            off.setBackgroundColor(Color.parseColor("#333333"))
-        } else {
-            on.setBackgroundColor(Color.parseColor("#333333"))
-            off.setBackgroundColor(Color.parseColor("#EF4444"))
-        }
-    }
-
-    private fun cpuPct(): Int {
+    fun cpuPct(): Int {
         try {
             val r = RandomAccessFile("/proc/stat", "r")
             val line = r.readLine() ?: return 0
@@ -313,8 +361,9 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun ramPct(): Int {
-        val am = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+    fun ramPct(): Int {
+        val am = getSystemService(Context.ACTIVITY_SERVICE)
+            as ActivityManager
         val mi = ActivityManager.MemoryInfo()
         am.getMemoryInfo(mi)
         if (mi.totalMem <= 0) return 0
@@ -322,7 +371,7 @@ class MainActivity : AppCompatActivity() {
         return (used * 100L / mi.totalMem).toInt()
     }
 
-    private fun netPct(): Int {
+    fun netPct(): Int {
         val now = System.currentTimeMillis()
         val rx = TrafficStats.getTotalRxBytes()
         val tx = TrafficStats.getTotalTxBytes()
@@ -337,8 +386,8 @@ class MainActivity : AppCompatActivity() {
         lastRx = rx
         lastTx = tx
         lastMs = now
-        val kbps = db * 1000L / dt / 1024L
-        val v = (kbps * 100L / 500L).toInt()
+        val kb = db * 1000L / dt / 1024L
+        val v = (kb * 100L / 500L).toInt()
         return if (v < 0) 0 else if (v > 100) 100 else v
     }
 }
