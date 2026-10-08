@@ -13,6 +13,7 @@ object Config {
     var deadZone = 0.4f
     var tapMaxMs = 270L
     var tapMaxDist = 26f
+    var recoilComp = 0.5f
 
     var aimlock = true
     var headTrack = true
@@ -39,6 +40,7 @@ object Config {
         antiShake = s.getBoolean("as", true)
         smoothAlpha = s.getFloat("sa", 0.72f)
         deadZone = s.getFloat("dz", 0.4f)
+        recoilComp = s.getFloat("rc", 0.5f)
         aimlock = s.getBoolean("al", true)
         headTrack = s.getBoolean("ht", true)
         boostFps = s.getBoolean("bf", true)
@@ -57,6 +59,7 @@ object Config {
             ?.putFloat("hh", horizHug)?.putFloat("jp", jitterPx)
             ?.putBoolean("as", antiShake)
             ?.putFloat("sa", smoothAlpha)?.putFloat("dz", deadZone)
+            ?.putFloat("rc", recoilComp)
             ?.putBoolean("al", aimlock)?.putBoolean("ht", headTrack)
             ?.putBoolean("bf", boostFps)?.putBoolean("br", boostRam)
             ?.putBoolean("fr", fixRung)?.putBoolean("op", optimize)
