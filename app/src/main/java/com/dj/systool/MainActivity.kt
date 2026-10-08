@@ -82,13 +82,30 @@ class MainActivity : AppCompatActivity() {
 
         addSpace()
 
-        addSwitch("AIMLOCK", Config.aimlock) { v -> Config.aimlock = v; Config.save() }
-        addSwitch("BOOST RAM", Config.boostRam) { v -> Config.boostRam = v; Config.save() }
-        addSwitch("SENSITIVITY", Config.antiShake) { v -> Config.antiShake = v; Config.save() }
-        addSwitch("FIX RUNG", Config.fixRung) { v -> Config.fixRung = v; Config.save() }
-        addSwitch("TOI UU", Config.optimize) { v -> Config.optimize = v; Config.save() }
-        addSwitch("BAM DAU", Config.headTrack) { v -> Config.headTrack = v; Config.save() }addSwitch("ANTIBAN", Config.antiban) { v -> Config.antiban = v; Config.save() }
-        addSwitch("BOOST FPS", Config.boostFps) { v -> Config.boostFps = v; Config.save() }
+        addSwitch("AIMLOCK", Config.aimlock, object : (Boolean) -> Unit {
+            override fun invoke(v: Boolean) { Config.aimlock = v; Config.save() }
+        })
+        addSwitch("BOOST RAM", Config.boostRam, object : (Boolean) -> Unit {
+            override fun invoke(v: Boolean) { Config.boostRam = v; Config.save() }
+        })
+        addSwitch("SENSITIVITY", Config.antiShake, object : (Boolean) -> Unit {
+            override fun invoke(v: Boolean) { Config.antiShake = v; Config.save() }
+        })
+        addSwitch("FIX RUNG", Config.fixRung, object : (Boolean) -> Unit {
+            override fun invoke(v: Boolean) { Config.fixRung = v; Config.save() }
+        })
+        addSwitch("TOI UU", Config.optimize, object : (Boolean) -> Unit {
+            override fun invoke(v: Boolean) { Config.optimize = v; Config.save() }
+        })
+        addSwitch("BAM DAU", Config.headTrack, object : (Boolean) -> Unit {
+            override fun invoke(v: Boolean) { Config.headTrack = v; Config.save() }
+        })
+        addSwitch("ANTIBAN", Config.antiban, object : (Boolean) -> Unit {
+            override fun invoke(v: Boolean) { Config.antiban = v; Config.save() }
+        })
+        addSwitch("BOOST FPS", Config.boostFps, object : (Boolean) -> Unit {
+            override fun invoke(v: Boolean) { Config.boostFps = v; Config.save() }
+        })
 
         addSpace()
 
