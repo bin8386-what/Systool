@@ -42,6 +42,8 @@ class MainActivity : AppCompatActivity() {
     lateinit var tvRam: TextView
     lateinit var tvNet: TextView
     lateinit var root: LinearLayout
+    var btnOn: Button? = null
+    var btnOff: Button? = null
 
     val colors = arrayOf(
         "#0a0618", "#000000", "#0d1b2a",
@@ -85,6 +87,23 @@ class MainActivity : AppCompatActivity() {
         addSpace()
         addOnOff()
         applyBg()
+        autoStart()
+    }
+
+    fun autoStart() {
+        h?.postDelayed({
+            val ov = Settings.canDrawOverlays(this)
+            if (!ov) return@postDelayed
+            if (TouchService.instance == null) return@postDelayed
+            val ws = Settings.System.canWrite(this)
+            if (!ws) return@postDelayed
+            ContextCompat.startForegroundService(this,
+                Intent(this, CoreService::class.java))
+            running = true
+            val on = btnOn
+            val off = btnOff
+            if (on != null && off != null) paint(on, off)
+        }, 500L)
     }
 
     fun addTitle() {
@@ -265,32 +284,34 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun addOnOff() {
-        val btnOn = Button(this)
-        btnOn.text = "ON"
-        btnOn.setTextColor(Color.WHITE)
-        btnOn.textSize = 20f
-        btnOn.setBackgroundColor(Color.parseColor("#22C55E"))
-        btnOn.layoutParams = LinearLayout.LayoutParams(-1, 180)
-        root.addView(btnOn)
+        val on = Button(this)
+        on.text = "ON"
+        on.textSize = 20f
+        on.layoutParams = LinearLayout.LayoutParams(-1, 180)
+        root.addView(on)
 
-        val btnOff = Button(this)
-        btnOff.text = "OFF"
-        btnOff.setTextColor(Color.WHITE)
-        btnOff.textSize = 20f
-        btnOff.setBackgroundColor(Color.parseColor("#333333"))
-        btnOff.layoutParams = LinearLayout.LayoutParams(-1, 180)
-        root.addView(btnOff)
+        val off = Button(this)
+        off.text = "OFF"
+        off.textSize = 20f
+        off.layoutParams = LinearLayout.LayoutParams(-1, 180)
+        root.addView(off)
 
-        btnOn.setOnClickListener { startOn(btnOn, btnOff) }
-        btnOff.setOnClickListener {
+        btnOn = on
+        btnOff = off
+
+        running = false
+        paint(on, off)
+
+        on.setOnClickListener { startOn(on, off) }
+        off.setOnClickListener {
             stopService(Intent(this, CoreService::class.java))
             running = false
-            paint(btnOn, btnOff)
+            paint(on, off)
             Toast.makeText(this, "Da TAT", Toast.LENGTH_SHORT).show()
         }
     }
 
-    fun startOn(btnOn: Button, btnOff: Button) {
+    fun startOn(on: Button, off: Button) {
         val ov = Settings.canDrawOverlays(this)
         if (!ov) {
             Toast.makeText(this, "Cap quyen Overlay",
@@ -318,7 +339,7 @@ class MainActivity : AppCompatActivity() {
         ContextCompat.startForegroundService(this,
             Intent(this, CoreService::class.java))
         running = true
-        paint(btnOn, btnOff)
+        paint(on, off)
         Toast.makeText(this, "Da BAT v2", Toast.LENGTH_SHORT).show()
     }
 
@@ -326,9 +347,13 @@ class MainActivity : AppCompatActivity() {
         if (running) {
             on.setBackgroundColor(Color.parseColor("#22C55E"))
             off.setBackgroundColor(Color.parseColor("#333333"))
+            on.setTextColor(Color.WHITE)
+            off.setTextColor(Color.parseColor("#777777"))
         } else {
             on.setBackgroundColor(Color.parseColor("#333333"))
             off.setBackgroundColor(Color.parseColor("#EF4444"))
+            on.setTextColor(Color.parseColor("#777777"))
+            off.setTextColor(Color.WHITE)
         }
     }
 
