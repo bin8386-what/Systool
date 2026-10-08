@@ -38,9 +38,9 @@ class MainActivity : AppCompatActivity() {
 
     private val tick = object : Runnable {
         override fun run() {
-            tvCpu.text = "${cpuPct()}%"
-            tvRam.text = "${ramPct()}%"
-            tvNet.text = "${netPct()}%"
+            tvCpu.text = "CPU ${cpuPct()}%"
+            tvRam.text = "RAM ${ramPct()}%"
+            tvNet.text = "NET ${netPct()}%"
             h.postDelayed(this, 1500L)
         }
     }
@@ -78,8 +78,8 @@ class MainActivity : AppCompatActivity() {
         swAim.setOnCheckedChangeListener { _: CompoundButton, v: Boolean -> Config.aimlock = v; Config.save() }
         swHead.setOnCheckedChangeListener { _: CompoundButton, v: Boolean -> Config.headTrack = v; Config.save() }
         swAnti.setOnCheckedChangeListener { _: CompoundButton, v: Boolean -> Config.antiShake = v; Config.save() }
-        swFps.setOnCheckedChangeListener { _: CompoundButton, v: Boolean -> Config.boostFps = v; Config.save() }
-        swBoost.setOnCheckedChangeListener { _: CompoundButton, v: Boolean -> Config.boostRam = v; Config.save() }swRung.setOnCheckedChangeListener { _: CompoundButton, v: Boolean -> Config.fixRung = v; Config.save() }
+        swFps.setOnCheckedChangeListener { _: CompoundButton, v: Boolean -> Config.boostFps = v; Config.save() }swBoost.setOnCheckedChangeListener { _: CompoundButton, v: Boolean -> Config.boostRam = v; Config.save() }
+        swRung.setOnCheckedChangeListener { _: CompoundButton, v: Boolean -> Config.fixRung = v; Config.save() }
         swOpt.setOnCheckedChangeListener { _: CompoundButton, v: Boolean -> Config.optimize = v; Config.save() }
         swBan.setOnCheckedChangeListener { _: CompoundButton, v: Boolean -> Config.antiban = v; Config.save() }
 
@@ -109,18 +109,18 @@ class MainActivity : AppCompatActivity() {
 
         btnOn.setOnClickListener {
             if (!Settings.canDrawOverlays(this)) {
-                Toast.makeText(this, "Cap quyen Overlay truoc", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Cap quyen Overlay", Toast.LENGTH_LONG).show()
                 startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                     Uri.parse("package:$packageName")))
                 return@setOnClickListener
             }
             if (TouchService.instance == null) {
-                Toast.makeText(this, "Bat Accessibility truoc", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Bat Accessibility", Toast.LENGTH_LONG).show()
                 startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
                 return@setOnClickListener
             }
             if (!Settings.System.canWrite(this)) {
-                Toast.makeText(this, "Cap quyen Write Settings", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, "Cap quyen Write", Toast.LENGTH_LONG).show()
                 startActivity(Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS,
                     Uri.parse("package:$packageName")))
                 return@setOnClickListener
@@ -139,11 +139,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun pickImage() {
-        val i = Intent(Intent.ACTION_PICK)
+    private fun pickImage() {val i = Intent(Intent.ACTION_PICK)
         i.type = "image/*"
         startActivityForResult(i, PICK_IMG)
-    }override fun onActivityResult(req: Int, res: Int, data: Intent?) {
+    }
+
+    override fun onActivityResult(req: Int, res: Int, data: Intent?) {
         super.onActivityResult(req, res, data)
         if (req == PICK_IMG && res == RESULT_OK) {
             val uri = data?.data ?: return
@@ -154,13 +155,12 @@ class MainActivity : AppCompatActivity() {
             Config.bgUri = uri.toString()
             Config.save()
             loadBg()
-            Toast.makeText(this, "Da doi anh nen", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun loadBg() {
         if (Config.bgUri.isEmpty()) {
-            rootLayout.setBackgroundResource(R.drawable.bg_main)
+            rootLayout.setBackgroundColor(Color.parseColor("#0a0618"))
             return
         }
         try {
@@ -169,9 +169,9 @@ class MainActivity : AppCompatActivity() {
             val d: Drawable? = Drawable.createFromStream(input, "bg")
             input?.close()
             if (d != null) rootLayout.background = d
-            else rootLayout.setBackgroundResource(R.drawable.bg_main)
+            else rootLayout.setBackgroundColor(Color.parseColor("#0a0618"))
         } catch (e: Exception) {
-            rootLayout.setBackgroundResource(R.drawable.bg_main)
+            rootLayout.setBackgroundColor(Color.parseColor("#0a0618"))
         }
     }
 
@@ -184,7 +184,7 @@ class MainActivity : AppCompatActivity() {
         val ws = if (Settings.System.canWrite(this)) "OK" else "X"
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         val dnd = if (nm.isNotificationPolicyAccessGranted) "OK" else "X"
-        tv.text = "Acc:$acc Overlay:$ov Write:$ws DND:$dnd"
+        tv.text = "Acc:$acc Ov:$ov Wr:$ws DND:$dnd"
     }
 
     override fun onPause() {
@@ -194,13 +194,13 @@ class MainActivity : AppCompatActivity() {
 
     private fun paintBtns(on: Button, off: Button) {
         if (running) {
-            on.background = ContextCompat.getDrawable(this, R.drawable.btn_green)
-            off.background = ContextCompat.getDrawable(this, R.drawable.btn_gray)
+            on.setBackgroundColor(Color.parseColor("#22C55E"))
+            off.setBackgroundColor(Color.parseColor("#333333"))
             on.setTextColor(Color.WHITE)
             off.setTextColor(Color.parseColor("#777777"))
         } else {
-            on.background = ContextCompat.getDrawable(this, R.drawable.btn_gray)
-            off.background = ContextCompat.getDrawable(this, R.drawable.btn_red)
+            on.setBackgroundColor(Color.parseColor("#333333"))
+            off.setBackgroundColor(Color.parseColor("#EF4444"))
             on.setTextColor(Color.parseColor("#777777"))
             off.setTextColor(Color.WHITE)
         }
@@ -219,8 +219,8 @@ class MainActivity : AppCompatActivity() {
             val dT = total - lastCpuTotal
             val dI = idle - lastCpuIdle
             lastCpuTotal = total
-            lastCpuIdle = idleif (dT <= 0) return 0
-            val v = ((dT - dI) * 100L / dT).toInt()
+            lastCpuIdle = idle
+            if (dT <= 0) return 0val v = ((dT - dI) * 100L / dT).toInt()
             return if (v < 0) 0 else if (v > 100) 100 else v
         } catch (e: Exception) { return 0 }
     }
