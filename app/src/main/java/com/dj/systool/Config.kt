@@ -13,7 +13,6 @@ object Config {
     var deadZone = 0.4f
     var tapMaxMs = 270L
     var tapMaxDist = 26f
-    var recoilComp = 0.5f
 
     var aimlock = true
     var headTrack = true
@@ -23,6 +22,8 @@ object Config {
     var optimize = true
     var antiban = true
     var gameIndex = 0
+
+    var bgColor = "#0a0618"
     var bgUri = ""
 
     private const val P = "hl"
@@ -38,7 +39,6 @@ object Config {
         antiShake = s.getBoolean("as", true)
         smoothAlpha = s.getFloat("sa", 0.72f)
         deadZone = s.getFloat("dz", 0.4f)
-        recoilComp = s.getFloat("rc", 0.5f)
         aimlock = s.getBoolean("al", true)
         headTrack = s.getBoolean("ht", true)
         boostFps = s.getBoolean("bf", true)
@@ -47,7 +47,8 @@ object Config {
         optimize = s.getBoolean("op", true)
         antiban = s.getBoolean("ab", true)
         gameIndex = s.getInt("gi", 0)
-        bgUri = s.getString("bg", "") ?: ""
+        bgColor = s.getString("bgc", "#0a0618") ?: "#0a0618"
+        bgUri = s.getString("bgu", "") ?: ""
     }
 
     fun save() {
@@ -56,12 +57,12 @@ object Config {
             ?.putFloat("hh", horizHug)?.putFloat("jp", jitterPx)
             ?.putBoolean("as", antiShake)
             ?.putFloat("sa", smoothAlpha)?.putFloat("dz", deadZone)
-            ?.putFloat("rc", recoilComp)
             ?.putBoolean("al", aimlock)?.putBoolean("ht", headTrack)
             ?.putBoolean("bf", boostFps)?.putBoolean("br", boostRam)
             ?.putBoolean("fr", fixRung)?.putBoolean("op", optimize)
             ?.putBoolean("ab", antiban)?.putInt("gi", gameIndex)
-            ?.putString("bg", bgUri)
+            ?.putString("bgc", bgColor)
+            ?.putString("bgu", bgUri)
             ?.apply()
     }
 
