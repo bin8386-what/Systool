@@ -108,7 +108,8 @@ class CoreService : Service() {
         )
         v.setOnTouchListener { _: View, ev: MotionEvent ->
             val ts = TouchService.instance
-            if (ts == null) return@setOnTouchListener falseif (!TouchService.gameActive) {
+            if (ts == null) return@setOnTouchListener false
+            if (!TouchService.gameActive) {
                 return@setOnTouchListener false
             }
             val act = ev.actionMasked
