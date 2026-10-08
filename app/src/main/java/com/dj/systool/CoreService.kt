@@ -5,7 +5,6 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
-import android.content.Context
 import android.content.Intent
 import android.graphics.PixelFormat
 import android.os.Build
@@ -76,11 +75,7 @@ class CoreService : Service() {
 
     private val tick = object : Runnable {
         override fun run() {
-            if (TouchService.gameActive) {
-                if (Config.boostRam) killBg()
-                if (Config.boostFps) animZero()
-                if (Config.fixRung) dndOn()
-            }
+            if (TouchService.gameActive && Config.boostRam) killBg()
             h.postDelayed(this, 3000L)
         }
     }
@@ -98,16 +93,12 @@ class CoreService : Service() {
         h.post(tick)
     }
 
-    private fun otype(): Int {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-            return WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAYreturn WindowManager.LayoutParams.TYPE_PHONE
-    }
+    private fun otype() = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 
     private fun flags(): Int {
         var f = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                 WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
-        if (!padActive) f = f or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+                WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREENif (!padActive) f = f or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
         return f
     }
 
@@ -174,42 +165,20 @@ class CoreService : Service() {
         "com.zing.zalo", "com.android.chrome", "com.sec.android.app.sbrowser",
         "org.mozilla.firefox", "com.netflix.mediaclient",
         "com.snapchat.android", "com.twitter.android",
-        "com.google.android.apps.photos", "com.google.android.apps.maps","com.google.android.gm", "com.samsung.android.game.gamehome",
+        "com.google.android.apps.photos", "com.google.android.apps.maps",
+        "com.google.android.gm", "com.samsung.android.game.gamehome",
         "com.sec.android.app.shealth", "com.samsung.android.app.spage",
         "com.samsung.android.bixby.agent"
     )
 
     private fun killBg() {
         val am = getSystemService(ACTIVITY_SERVICE) as ActivityManager
-        for (p in apps) {
-            try { am.killBackgroundProcesses(p) } catch (e: Exception) {}
+        for (p in apps) {try { am.killBackgroundProcesses(p) } catch (e: Exception) {}
         }
         try {
             val m = ActivityManager::class.java
                 .getMethod("killAllBackgroundProcesses")
             m.invoke(am)
-        } catch (e: Exception) {}
-    }
-
-    private fun animZero() {
-        try {
-            val cr = contentResolver
-            android.provider.Settings.Global.putFloat(cr,
-                android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
-            android.provider.Settings.Global.putFloat(cr,
-                android.provider.Settings.Global.TRANSITION_ANIMATION_SCALE, 0f)
-            android.provider.Settings.Global.putFloat(cr,
-                android.provider.Settings.Global.WINDOW_ANIMATION_SCALE, 0f)
-        } catch (e: Exception) {}
-    }
-
-    private fun dndOn() {
-        try {
-            val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-            if (nm.isNotificationPolicyAccessGranted) {
-                nm.setInterruptionFilter(
-                    NotificationManager.INTERRUPTION_FILTER_PRIORITY)
-            }
         } catch (e: Exception) {}
     }
 
@@ -224,11 +193,7 @@ class CoreService : Service() {
     }
 
     private fun noti(): Notification {
-        val b: Notification.Builder
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-            b = Notification.Builder(this, "sys")
-        else
-            b = Notification.Builder(this)
+        val b = Notification.Builder(this, "sys")
         return b.setContentTitle("System Service")
             .setContentText("running")
             .setSmallIcon(android.R.drawable.ic_menu_manage)
@@ -242,14 +207,6 @@ class CoreService : Service() {
         h.removeCallbacks(watch)
         val v = pad
         if (v != null) wm.removeView(v)
-        try {
-            val cr = contentResolver
-            android.provider.Settings.Global.putFloat(cr,
-                android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f)
-            android.provider.Settings.Global.putFloat(cr,
-                android.provider.Settings.Global.TRANSITION_ANIMATION_SCALE, 1f)
-            android.provider.Settings.Global.putFloat(cr,
-                android.provider.Settings.Global.WINDOW_ANIMATION_SCALE, 1f)
-        } catch (e: Exception) {}super.onDestroy()
+        super.onDestroy()
     }
 }
