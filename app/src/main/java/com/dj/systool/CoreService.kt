@@ -202,8 +202,7 @@ class CoreService : Service() {
         "com.samsung.android.app.notes", "com.samsung.android.calendar",
         "com.sec.android.app.myfiles", "com.samsung.android.dialer",
         "com.samsung.android.contacts", "com.samsung.android.app.reminder",
-        "com.samsung.android.app.tips", "com.samsung.android.game.gos",
-        "com.samsung.android.arzone", "com.samsung.android.oneconnect"
+        "com.samsung.android.app.tips", "com.samsung.android.game.gos"
     )
 
     private fun applyAll() {
@@ -248,19 +247,13 @@ class CoreService : Service() {
             Settings.Global.putFloat(contentResolver,
                 Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
             Settings.Global.putFloat(contentResolver,
-                Settings.Global.TRANSITION_ANIMATION_SCALE, 0f)Settings.Global.putFloat(contentResolver,
-                Settings.Global.WINDOW_ANIMATION_SCALE, 0f)
-            Settings.Global.putInt(contentResolver, "sem_perf_level", 1)
+                Settings.Global.TRANSITION_ANIMATION_SCALE, 0f)
+            Settings.Global.putFloat(contentResolver,
+                Settings.Global.WINDOW_ANIMATION_SCALE, 0f)Settings.Global.putInt(contentResolver, "sem_perf_level", 1)
             Settings.Global.putInt(contentResolver,
                 "sem_enhanced_cpu_responsiveness", 1)
             Settings.Global.putInt(contentResolver,
                 "game_auto_temperature_control", 0)
-            Settings.Global.putInt(contentResolver,
-                "persist.sys.sdhci.max_speed", 1)
-            Settings.Global.putInt(contentResolver,
-                "persist.sys.NV_FPSLIMIT", 0)
-            Settings.Global.putInt(contentResolver,
-                "persist.sys.NV_POWERMODE", 1)
         } catch (e: Exception) {}
     }
 
@@ -312,7 +305,8 @@ class CoreService : Service() {
                 Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL)
             Settings.System.putInt(contentResolver,
                 Settings.System.SCREEN_BRIGHTNESS, 80)
-            Settings.System.putInt(contentResolver,Settings.System.ACCELEROMETER_ROTATION, 0)
+            Settings.System.putInt(contentResolver,
+                Settings.System.ACCELEROMETER_ROTATION, 0)
             Settings.System.putInt(contentResolver,
                 Settings.System.SCREEN_OFF_TIMEOUT, 30 * 60 * 1000)
         } catch (e: Exception) {}
@@ -323,8 +317,7 @@ class CoreService : Service() {
         } catch (e: Exception) {}
     }
 
-    private fun restoreSystem() {
-        if (!Settings.System.canWrite(this)) return
+    private fun restoreSystem() {if (!Settings.System.canWrite(this)) return
         try {
             if (oldBrightness >= 0) {
                 Settings.System.putInt(contentResolver,
@@ -384,7 +377,8 @@ class CoreService : Service() {
             .setContentText("running")
             .setSmallIcon(android.R.drawable.ic_menu_manage)
             .setPriority(Notification.PRIORITY_MIN)
-            .setOngoing(true).build()
+            .setOngoing(true)
+            .build()
     }
 
     override fun onDestroy() {
