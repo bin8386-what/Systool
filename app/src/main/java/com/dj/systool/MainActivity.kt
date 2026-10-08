@@ -12,6 +12,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.view.Gravity
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
@@ -32,60 +33,60 @@ class MainActivity : AppCompatActivity() {
     private lateinit var tvCpu: TextView
     private lateinit var tvRam: TextView
     private lateinit var tvNet: TextView
-    private lateinit var rootLayout: View
+    private lateinit var rootLayout: LinearLayout
 
     private val PICK_IMG = 1001
 
     private val tick = object : Runnable {
         override fun run() {
-            tvCpu.text = "CPU ${cpuPct()}%"
-            tvRam.text = "RAM ${ramPct()}%"
-            tvNet.text = "NET ${netPct()}%"
+            tvCpu.text = "${cpuPct()}%"
+            tvRam.text = "${ramPct()}%"
+            tvNet.text = "${netPct()}%"
             h.postDelayed(this, 1500L)
         }
     }
 
     override fun onCreate(s: Bundle?) {
         super.onCreate(s)
-        setContentView(R.layout.activity_main)
         Config.init(this)
 
-        rootLayout = findViewById(R.id.rootLayout)
-        tvCpu = findViewById(R.id.tvCpu)
-        tvRam = findViewById(R.id.tvRam)
-        tvNet = findViewById(R.id.tvNet)
+        rootLayout = LinearLayout(this)
+        rootLayout.orientation = LinearLayout.VERTICAL
+        rootLayout.setPadding(30, 30, 30, 30)
+        rootLayout.setBackgroundColor(Color.parseColor("#0a0618"))
 
-        loadBg()
+        val scroll = ScrollView(this)
+        scroll.addView(rootLayout)
+        setContentView(scroll)
 
-        val swAim = findViewById<Switch>(R.id.swAimlock)
-        val swHead = findViewById<Switch>(R.id.swHead)
-        val swAnti = findViewById<Switch>(R.id.swAntiShake)
-        val swFps = findViewById<Switch>(R.id.swBoostFps)
-        val swBoost = findViewById<Switch>(R.id.swBoost)
-        val swRung = findViewById<Switch>(R.id.swFixRung)
-        val swOpt = findViewById<Switch>(R.id.swOptimize)
-        val swBan = findViewById<Switch>(R.id.swAntiban)
+        val row = LinearLayout(this)
+        row.orientation = LinearLayout.HORIZONTAL
+        row.gravity = Gravity.CENTER
 
-        swAim.isChecked = Config.aimlock
-        swHead.isChecked = Config.headTrack
-        swAnti.isChecked = Config.antiShake
-        swFps.isChecked = Config.boostFps
-        swBoost.isChecked = Config.boostRam
-        swRung.isChecked = Config.fixRung
-        swOpt.isChecked = Config.optimize
-        swBan.isChecked = Config.antiban
+        tvCpu = makeCircle("0%")
+        tvRam = makeCircle("0%")
+        tvNet = makeCircle("0%")
 
-        swAim.setOnCheckedChangeListener { _: CompoundButton, v: Boolean -> Config.aimlock = v; Config.save() }
-        swHead.setOnCheckedChangeListener { _: CompoundButton, v: Boolean -> Config.headTrack = v; Config.save() }
-        swAnti.setOnCheckedChangeListener { _: CompoundButton, v: Boolean -> Config.antiShake = v; Config.save() }
-        swFps.setOnCheckedChangeListener { _: CompoundButton, v: Boolean -> Config.boostFps = v; Config.save() }swBoost.setOnCheckedChangeListener { _: CompoundButton, v: Boolean -> Config.boostRam = v; Config.save() }
-        swRung.setOnCheckedChangeListener { _: CompoundButton, v: Boolean -> Config.fixRung = v; Config.save() }
-        swOpt.setOnCheckedChangeListener { _: CompoundButton, v: Boolean -> Config.optimize = v; Config.save() }
-        swBan.setOnCheckedChangeListener { _: CompoundButton, v: Boolean -> Config.antiban = v; Config.save() }
+        row.addView(makeCol("CPU", tvCpu))
+        row.addView(makeCol("RAM", tvRam))
+        row.addView(makeCol("NET", tvNet))
+        rootLayout.addView(row)
 
-        val sp = findViewById<Spinner>(R.id.spGame)
-        val games = arrayOf("Free Fire", "Free Fire MAX", "Ca hai")
-        sp.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, games)
+        addSpace()
+
+        addSwitch("AIMLOCK", Config.aimlock) { v -> Config.aimlock = v; Config.save() }
+        addSwitch("BOOST RAM", Config.boostRam) { v -> Config.boostRam = v; Config.save() }
+        addSwitch("SENSITIVITY", Config.antiShake) { v -> Config.antiShake = v; Config.save() }
+        addSwitch("FIX RUNG", Config.fixRung) { v -> Config.fixRung = v; Config.save() }
+        addSwitch("TOI UU", Config.optimize) { v -> Config.optimize = v; Config.save() }
+        addSwitch("BAM DAU", Config.headTrack) { v -> Config.headTrack = v; Config.save() }
+        addSwitch("ANTIBAN", Config.antiban) { v -> Config.antiban = v; Config.save() }
+        addSwitch("BOOST FPS", Config.boostFps) { v -> Config.boostFps = v; Config.save() }
+
+        addSpace()
+
+        val sp = Spinner(this)
+        val games = arrayOf("Free Fire", "Free Fire MAX", "Ca hai")sp.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, games)
         sp.setSelection(Config.gameIndex)
         sp.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(p: AdapterView<*>?, view: View?, pos: Int, id: Long) {
@@ -94,18 +95,31 @@ class MainActivity : AppCompatActivity() {
             }
             override fun onNothingSelected(p: AdapterView<*>?) {}
         }
+        rootLayout.addView(sp)
 
-        findViewById<Button>(R.id.btnPickBg).setOnClickListener { pickImage() }
-        findViewById<Button>(R.id.btnResetBg).setOnClickListener {
+        addSpace()
+
+        val btnPick = makeBtn("DOI ANH NEN", "#2a2a3a")
+        btnPick.setOnClickListener { pickImage() }
+        rootLayout.addView(btnPick)
+
+        val btnReset = makeBtn("MAC DINH", "#2a2a3a")
+        btnReset.setOnClickListener {
             Config.bgUri = ""
             Config.save()
             loadBg()
-            Toast.makeText(this, "Da reset", Toast.LENGTH_SHORT).show()
         }
+        rootLayout.addView(btnReset)
 
-        val btnOn = findViewById<Button>(R.id.btnOn)
-        val btnOff = findViewById<Button>(R.id.btnOff)
+        addSpace()
+
+        val btnOn = makeBtn("ON", "#22C55E")
+        val btnOff = makeBtn("OFF", "#EF4444")
+        rootLayout.addView(btnOn)
+        rootLayout.addView(btnOff)
         paintBtns(btnOn, btnOff)
+
+        loadBg()
 
         btnOn.setOnClickListener {
             if (!Settings.canDrawOverlays(this)) {
@@ -139,7 +153,62 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun pickImage() {val i = Intent(Intent.ACTION_PICK)
+    private fun makeCircle(txt: String): TextView {
+        val t = TextView(this)
+        t.text = txt
+        t.setTextColor(Color.WHITE)
+        t.textSize = 17f
+        t.gravity = Gravity.CENTER
+        t.setBackgroundColor(Color.parseColor("#1A0E2A"))
+        t.layoutParams = LinearLayout.LayoutParams(200, 200)
+        return t
+    }
+
+    private fun makeCol(label: String, circle: TextView): LinearLayout {val c = LinearLayout(this)
+        c.orientation = LinearLayout.VERTICAL
+        c.gravity = Gravity.CENTER
+        c.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        c.addView(circle)
+        val t = TextView(this)
+        t.text = label
+        t.setTextColor(Color.parseColor("#AAAAAA"))
+        t.textSize = 12f
+        t.setPadding(0, 10, 0, 0)
+        c.addView(t)
+        return c
+    }
+
+    private fun addSwitch(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+        val sw = Switch(this)
+        sw.text = label
+        sw.setTextColor(Color.WHITE)
+        sw.textSize = 15f
+        sw.isChecked = checked
+        sw.setPadding(20, 20, 20, 20)
+        sw.setOnCheckedChangeListener { _: CompoundButton, v: Boolean -> onChange(v) }
+        rootLayout.addView(sw)
+    }
+
+    private fun makeBtn(text: String, colorHex: String): Button {
+        val b = Button(this)
+        b.text = text
+        b.setTextColor(Color.WHITE)
+        b.textSize = 16f
+        b.setBackgroundColor(Color.parseColor(colorHex))
+        b.layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, 140)
+        return b
+    }
+
+    private fun addSpace() {
+        val v = View(this)
+        v.layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, 30)
+        rootLayout.addView(v)
+    }
+
+    private fun pickImage() {
+        val i = Intent(Intent.ACTION_PICK)
         i.type = "image/*"
         startActivityForResult(i, PICK_IMG)
     }
@@ -178,13 +247,6 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         h.post(tick)
-        val tv = findViewById<TextView>(R.id.tvStatus)
-        val acc = if (TouchService.instance != null) "OK" else "X"
-        val ov = if (Settings.canDrawOverlays(this)) "OK" else "X"
-        val ws = if (Settings.System.canWrite(this)) "OK" else "X"
-        val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-        val dnd = if (nm.isNotificationPolicyAccessGranted) "OK" else "X"
-        tv.text = "Acc:$acc Ov:$ov Wr:$ws DND:$dnd"
     }
 
     override fun onPause() {
@@ -193,16 +255,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun paintBtns(on: Button, off: Button) {
-        if (running) {
-            on.setBackgroundColor(Color.parseColor("#22C55E"))
+        if (running) {on.setBackgroundColor(Color.parseColor("#22C55E"))
             off.setBackgroundColor(Color.parseColor("#333333"))
-            on.setTextColor(Color.WHITE)
-            off.setTextColor(Color.parseColor("#777777"))
         } else {
             on.setBackgroundColor(Color.parseColor("#333333"))
             off.setBackgroundColor(Color.parseColor("#EF4444"))
-            on.setTextColor(Color.parseColor("#777777"))
-            off.setTextColor(Color.WHITE)
         }
     }
 
@@ -220,7 +277,8 @@ class MainActivity : AppCompatActivity() {
             val dI = idle - lastCpuIdle
             lastCpuTotal = total
             lastCpuIdle = idle
-            if (dT <= 0) return 0val v = ((dT - dI) * 100L / dT).toInt()
+            if (dT <= 0) return 0
+            val v = ((dT - dI) * 100L / dT).toInt()
             return if (v < 0) 0 else if (v > 100) 100 else v
         } catch (e: Exception) { return 0 }
     }
