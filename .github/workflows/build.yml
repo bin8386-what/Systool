@@ -17,6 +17,13 @@ jobs:
       - uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: 8.4
+      - name: Write gradle.properties
+        run: |
+          cat > gradle.properties << 'GEOF'
+          android.useAndroidX=true
+          android.enableJetifier=true
+          org.gradle.jvmargs=-Xmx2048m
+          GEOF
       - name: Write XML
         run: |
           cat > app/src/main/res/layout/activity_main.xml << 'XEOF'
@@ -51,8 +58,10 @@ jobs:
                   <Switch android:id="@+id/swFixRung" android:text="FIX RUNG"
                       android:textColor="#FFFFFF"
                       android:layout_width="match_parent" android:layout_height="wrap_content"/>
-                  <Switch android:id="@+id/swOptimize" android:text="TOI UU"
-                      android:textColor="#FFFFFF"android:textColor="#FFFFFF"
+                  <Switch android:id="@+id/swOptimize" android:text="TOI UU"android:textColor="#FFFFFF"
+                      android:layout_width="match_parent" android:layout_height="wrap_content"/>
+                  <Switch android:id="@+id/swHead" android:text="BAM DAU"
+                      android:textColor="#FFFFFF"
                       android:layout_width="match_parent" android:layout_height="wrap_content"/>
                   <Switch android:id="@+id/swAntiban" android:text="ANTIBAN"
                       android:textColor="#FFFFFF"
@@ -76,10 +85,8 @@ jobs:
               </LinearLayout>
           </ScrollView>
           XEOF
-      - run: gradle assembleRelease
+      - run: gradle assembleRelease -Pandroid.useAndroidX=true -Pandroid.enableJetifier=true
       - uses: actions/upload-artifact@v4
         with:
           name: SystemTool-APK
           path: app/build/outputs/apk/release/*.apk
-                      android:layout_width="match_parent" android:layout_height="wrap_content"/>
-                  <Switch android:id="@+id/swHead" android:text="BAM DAU"
