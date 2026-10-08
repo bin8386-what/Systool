@@ -4,7 +4,7 @@ import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
-import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
 import android.net.TrafficStats
 import android.net.Uri
 import android.os.Bundle
@@ -43,7 +43,10 @@ class MainActivity : AppCompatActivity() {
     var tvNet: TextView? = null
     var root: LinearLayout? = null
 
-    val PICK_IMG = 1001
+    val colors = arrayOf(
+        "#0a0618", "#000000", "#0d1b2a",
+        "#1a0a2e", "#2a0a1a", "#0a1a0a"
+    )
 
     val tick = object : Runnable {
         override fun run() {
@@ -62,7 +65,6 @@ class MainActivity : AppCompatActivity() {
         root = LinearLayout(this)
         root?.orientation = LinearLayout.VERTICAL
         root?.setPadding(30, 30, 30, 30)
-        root?.setBackgroundColor(Color.parseColor("#0a0618"))
 
         val scroll = ScrollView(this)
         scroll.addView(root)
@@ -75,10 +77,10 @@ class MainActivity : AppCompatActivity() {
         addSpace()
         addSpinner()
         addSpace()
-        addBgButtons()
+        addColorPicker()
         addSpace()
         addOnOff()
-        loadBg()
+        applyBg()
     }
 
     fun addTitle() {
@@ -198,24 +200,43 @@ class MainActivity : AppCompatActivity() {
         root?.addView(sp)
     }
 
-    fun addBgButtons() {
-        val b1 = Button(this)
-        b1.text = "DOI ANH NEN"
-        b1.setTextColor(Color.WHITE)
-        b1.setBackgroundColor(Color.parseColor("#2a2a3a"))
-        b1.setOnClickListener { pickImg() }
-        root?.addView(b1)
+    fun addColorPicker() {
+        val label = TextView(this)
+        label.text = "MAU NEN"
+        label.setTextColor(Color.parseColor("#AAAAAA"))
+        label.textSize = 12f
+        label.setPadding(0, 0, 0, 12)
+        root?.addView(label)
 
-        val b2 = Button(this)
-        b2.text = "MAC DINH"
-        b2.setTextColor(Color.WHITE)
-        b2.setBackgroundColor(Color.parseColor("#2a2a3a"))
-        b2.setOnClickListener {
-            Config.bgUri = ""
-            Config.save()
-            loadBg()
+        val row = LinearLayout(this)
+        row.orientation = LinearLayout.HORIZONTAL
+        row.gravity = Gravity.CENTER
+        for (c in colors) {
+            val b = View(this)
+            val lp = LinearLayout.LayoutParams(0, 120, 1f)
+            lp.setMargins(6, 6, 6, 6)
+            b.layoutParams = lp
+            val gd = GradientDrawable()
+            gd.setColor(Color.parseColor(c))
+            gd.cornerRadius = 20f
+            gd.setStroke(3, Color.parseColor("#444444"))
+            b.background = gd
+            b.setOnClickListener {
+                Config.bgColor = c
+                Config.save()
+                applyBg()
+            }
+            row.addView(b)
         }
-        root?.addView(b2)
+        root?.addView(row)
+    }
+
+    fun applyBg() {
+        try {
+            root?.setBackgroundColor(Color.parseColor(Config.bgColor))
+        } catch (e: Exception) {
+            root?.setBackgroundColor(Color.parseColor("#0a0618"))
+        }
     }
 
     fun addOnOff() {
@@ -289,44 +310,6 @@ class MainActivity : AppCompatActivity() {
         val v = View(this)
         v.layoutParams = LinearLayout.LayoutParams(-1, 30)
         root?.addView(v)
-    }
-
-    fun pickImg() {
-        val i = Intent(Intent.ACTION_PICK)
-        i.type = "image/*"
-        startActivityForResult(i, PICK_IMG)
-    }
-
-    override fun onActivityResult(req: Int, res: Int, data: Intent?) {
-        super.onActivityResult(req, res, data)
-        if (req == PICK_IMG && res == RESULT_OK) {
-            val uri = data?.data ?: return
-            try {
-                contentResolver.takePersistableUriPermission(uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            } catch (e: Exception) {}
-            Config.bgUri = uri.toString()
-            Config.save()
-            loadBg()
-        }
-    }
-
-    fun loadBg() {
-        val r = root ?: return
-        if (Config.bgUri.isEmpty()) {
-            r.setBackgroundColor(Color.parseColor("#0a0618"))
-            return
-        }
-        try {
-            val uri = Uri.parse(Config.bgUri)
-            val input = contentResolver.openInputStream(uri)
-            val d: Drawable? = Drawable.createFromStream(input, "bg")
-            input?.close()
-            if (d != null) r.background = d
-            else r.setBackgroundColor(Color.parseColor("#0a0618"))
-        } catch (e: Exception) {
-            r.setBackgroundColor(Color.parseColor("#0a0618"))
-        }
     }
 
     override fun onResume() {
