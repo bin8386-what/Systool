@@ -1,7 +1,6 @@
 package com.dj.systool
 
 import android.app.ActivityManager
-import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
@@ -14,7 +13,16 @@ import android.os.Looper
 import android.provider.Settings
 import android.view.Gravity
 import android.view.View
-import android.widget.*
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
+import android.widget.Button
+import android.widget.CompoundButton
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.Spinner
+import android.widget.Switch
+import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import java.io.RandomAccessFile
@@ -39,9 +47,9 @@ class MainActivity : AppCompatActivity() {
 
     private val tick = object : Runnable {
         override fun run() {
-            tvCpu.text = "${cpuPct()}%"
-            tvRam.text = "${ramPct()}%"
-            tvNet.text = "${netPct()}%"
+            tvCpu.text = cpuPct().toString() + "%"
+            tvRam.text = ramPct().toString() + "%"
+            tvNet.text = netPct().toString() + "%"
             h.postDelayed(this, 1500L)
         }
     }
@@ -79,23 +87,24 @@ class MainActivity : AppCompatActivity() {
         addSwitch("SENSITIVITY", Config.antiShake) { v -> Config.antiShake = v; Config.save() }
         addSwitch("FIX RUNG", Config.fixRung) { v -> Config.fixRung = v; Config.save() }
         addSwitch("TOI UU", Config.optimize) { v -> Config.optimize = v; Config.save() }
-        addSwitch("BAM DAU", Config.headTrack) { v -> Config.headTrack = v; Config.save() }
-        addSwitch("ANTIBAN", Config.antiban) { v -> Config.antiban = v; Config.save() }
+        addSwitch("BAM DAU", Config.headTrack) { v -> Config.headTrack = v; Config.save() }addSwitch("ANTIBAN", Config.antiban) { v -> Config.antiban = v; Config.save() }
         addSwitch("BOOST FPS", Config.boostFps) { v -> Config.boostFps = v; Config.save() }
 
         addSpace()
 
-        val sp = Spinner(this)
-        val games = arrayOf("Free Fire", "Free Fire MAX", "Ca hai")sp.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, games)
-        sp.setSelection(Config.gameIndex)
-        sp.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+        val gameSpinner = Spinner(this)
+        val games = arrayOf("Free Fire", "Free Fire MAX", "Ca hai")
+        gameSpinner.adapter = ArrayAdapter(this,
+            android.R.layout.simple_spinner_dropdown_item, games)
+        gameSpinner.setSelection(Config.gameIndex)
+        gameSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(p: AdapterView<*>?, view: View?, pos: Int, id: Long) {
                 Config.gameIndex = pos
                 Config.save()
             }
             override fun onNothingSelected(p: AdapterView<*>?) {}
         }
-        rootLayout.addView(sp)
+        rootLayout.addView(gameSpinner)
 
         addSpace()
 
@@ -125,7 +134,7 @@ class MainActivity : AppCompatActivity() {
             if (!Settings.canDrawOverlays(this)) {
                 Toast.makeText(this, "Cap quyen Overlay", Toast.LENGTH_LONG).show()
                 startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:$packageName")))
+                    Uri.parse("package:" + packageName)))
                 return@setOnClickListener
             }
             if (TouchService.instance == null) {
@@ -136,10 +145,11 @@ class MainActivity : AppCompatActivity() {
             if (!Settings.System.canWrite(this)) {
                 Toast.makeText(this, "Cap quyen Write", Toast.LENGTH_LONG).show()
                 startActivity(Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS,
-                    Uri.parse("package:$packageName")))
+                    Uri.parse("package:" + packageName)))
                 return@setOnClickListener
             }
-            ContextCompat.startForegroundService(this, Intent(this, CoreService::class.java))
+            ContextCompat.startForegroundService(this,
+                Intent(this, CoreService::class.java))
             running = true
             paintBtns(btnOn, btnOff)
             Toast.makeText(this, "Da BAT v2", Toast.LENGTH_SHORT).show()
@@ -153,8 +163,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun makeCircle(txt: String): TextView {
-        val t = TextView(this)
+    private fun makeCircle(txt: String): TextView {val t = TextView(this)
         t.text = txt
         t.setTextColor(Color.WHITE)
         t.textSize = 17f
@@ -164,10 +173,12 @@ class MainActivity : AppCompatActivity() {
         return t
     }
 
-    private fun makeCol(label: String, circle: TextView): LinearLayout {val c = LinearLayout(this)
+    private fun makeCol(label: String, circle: TextView): LinearLayout {
+        val c = LinearLayout(this)
         c.orientation = LinearLayout.VERTICAL
         c.gravity = Gravity.CENTER
-        c.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        c.layoutParams = LinearLayout.LayoutParams(0,
+            LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
         c.addView(circle)
         val t = TextView(this)
         t.text = label
@@ -239,8 +250,7 @@ class MainActivity : AppCompatActivity() {
             input?.close()
             if (d != null) rootLayout.background = d
             else rootLayout.setBackgroundColor(Color.parseColor("#0a0618"))
-        } catch (e: Exception) {
-            rootLayout.setBackgroundColor(Color.parseColor("#0a0618"))
+        } catch (e: Exception) {rootLayout.setBackgroundColor(Color.parseColor("#0a0618"))
         }
     }
 
@@ -255,7 +265,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun paintBtns(on: Button, off: Button) {
-        if (running) {on.setBackgroundColor(Color.parseColor("#22C55E"))
+        if (running) {
+            on.setBackgroundColor(Color.parseColor("#22C55E"))
             off.setBackgroundColor(Color.parseColor("#333333"))
         } else {
             on.setBackgroundColor(Color.parseColor("#333333"))
@@ -280,7 +291,9 @@ class MainActivity : AppCompatActivity() {
             if (dT <= 0) return 0
             val v = ((dT - dI) * 100L / dT).toInt()
             return if (v < 0) 0 else if (v > 100) 100 else v
-        } catch (e: Exception) { return 0 }
+        } catch (e: Exception) {
+            return 0
+        }
     }
 
     private fun ramPct(): Int {
@@ -297,11 +310,16 @@ class MainActivity : AppCompatActivity() {
         val rx = TrafficStats.getTotalRxBytes()
         val tx = TrafficStats.getTotalTxBytes()
         if (lastMs == 0L) {
-            lastRx = rx; lastTx = tx; lastMs = now; return 0
+            lastRx = rx
+            lastTx = tx
+            lastMs = now
+            return 0
         }
         val dt = (now - lastMs).coerceAtLeast(1)
         val db = (rx - lastRx) + (tx - lastTx)
-        lastRx = rx; lastTx = tx; lastMs = now
+        lastRx = rx
+        lastTx = tx
+        lastMs = now
         val kbps = db * 1000L / dt / 1024L
         val v = (kbps * 100L / 500L).toInt()
         return if (v < 0) 0 else if (v > 100) 100 else v
