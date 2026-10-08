@@ -4,19 +4,17 @@ import android.content.Context
 import android.content.SharedPreferences
 
 object Config {
-    // AIM — max
-    var snapPx = 620f
-    var pullUp = 5.5f
-    var horizHug = 0.06f
-    var jitterPx = 0.2f
+    var snapPx = 700f
+    var pullUp = 6.5f
+    var horizHug = 0.05f
+    var jitterPx = 0.15f
     var antiShake = true
-    var smoothAlpha = 0.68f
-    var deadZone = 0.5f
-    var tapMaxMs = 260L
-    var tapMaxDist = 24f
-    var recoilComp = 0.4f
+    var smoothAlpha = 0.72f
+    var deadZone = 0.4f
+    var tapMaxMs = 270L
+    var tapMaxDist = 26f
+    var recoilComp = 0.5f
 
-    // switches
     var aimlock = true
     var headTrack = true
     var boostFps = true
@@ -25,6 +23,7 @@ object Config {
     var optimize = true
     var antiban = true
     var gameIndex = 0
+    var bgUri = ""
 
     private const val P = "hl"
     private var sp: SharedPreferences? = null
@@ -32,14 +31,14 @@ object Config {
     fun init(c: Context) {
         sp = c.getSharedPreferences(P, Context.MODE_PRIVATE)
         val s = sp!!
-        snapPx = s.getFloat("sp", 620f)
-        pullUp = s.getFloat("pu", 5.5f)
-        horizHug = s.getFloat("hh", 0.06f)
-        jitterPx = s.getFloat("jp", 0.2f)
+        snapPx = s.getFloat("sp", 700f)
+        pullUp = s.getFloat("pu", 6.5f)
+        horizHug = s.getFloat("hh", 0.05f)
+        jitterPx = s.getFloat("jp", 0.15f)
         antiShake = s.getBoolean("as", true)
-        smoothAlpha = s.getFloat("sa", 0.68f)
-        deadZone = s.getFloat("dz", 0.5f)
-        recoilComp = s.getFloat("rc", 0.4f)
+        smoothAlpha = s.getFloat("sa", 0.72f)
+        deadZone = s.getFloat("dz", 0.4f)
+        recoilComp = s.getFloat("rc", 0.5f)
         aimlock = s.getBoolean("al", true)
         headTrack = s.getBoolean("ht", true)
         boostFps = s.getBoolean("bf", true)
@@ -48,6 +47,7 @@ object Config {
         optimize = s.getBoolean("op", true)
         antiban = s.getBoolean("ab", true)
         gameIndex = s.getInt("gi", 0)
+        bgUri = s.getString("bg", "") ?: ""
     }
 
     fun save() {
@@ -60,7 +60,9 @@ object Config {
             ?.putBoolean("al", aimlock)?.putBoolean("ht", headTrack)
             ?.putBoolean("bf", boostFps)?.putBoolean("br", boostRam)
             ?.putBoolean("fr", fixRung)?.putBoolean("op", optimize)
-            ?.putBoolean("ab", antiban)?.putInt("gi", gameIndex)?.apply()
+            ?.putBoolean("ab", antiban)?.putInt("gi", gameIndex)
+            ?.putString("bg", bgUri)
+            ?.apply()
     }
 
     fun activePackages(): List<String> = when (gameIndex) {
