@@ -38,8 +38,7 @@ class CoreService : Service() {
     val loop = object : Runnable {
         override fun run() {
             if (!down) return
-            val ts = TouchService.instance
-            if (ts == null) return
+            val ts = TouchService.instance ?: return
             val a = Config.smoothAlpha
             sx = a * rx + (1f - a) * sx
             sy = a * ry + (1f - a) * sy
@@ -108,37 +107,39 @@ class CoreService : Service() {
             PixelFormat.TRANSLUCENT
         )
         v.setOnTouchListener { _: View, ev: MotionEvent ->
-            val ts = TouchService.instanceif (ts == null) return@setOnTouchListener false
-            if (!TouchService.gameActive) {
+            val ts = TouchService.instance
+            if (ts == null) return@setOnTouchListener falseif (!TouchService.gameActive) {
                 return@setOnTouchListener false
             }
-            when (ev.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    rx = ev.rawX
-                    ry = ev.rawY
-                    sx = ev.rawX
-                    sy = ev.rawY
-                    px = ev.rawX
-                    py = ev.rawY
-                    down = true
-                    mv = 0f
-                    t0 = System.currentTimeMillis()
-                    h?.postDelayed(loop, 20L)
+            val act = ev.actionMasked
+            if (act == MotionEvent.ACTION_DOWN) {
+                rx = ev.rawX
+                ry = ev.rawY
+                sx = ev.rawX
+                sy = ev.rawY
+                px = ev.rawX
+                py = ev.rawY
+                down = true
+                mv = 0f
+                t0 = System.currentTimeMillis()
+                h?.postDelayed(loop, 20L)
+            } else if (act == MotionEvent.ACTION_MOVE) {
+                mv = mv + Math.abs(ev.rawX - rx)
+                mv = mv + Math.abs(ev.rawY - ry)
+                rx = ev.rawX
+                ry = ev.rawY
+            } else if (act == MotionEvent.ACTION_UP) {
+                val dur = System.currentTimeMillis() - t0
+                val small = mv < Config.tapMaxDist
+                val quick = dur < Config.tapMaxMs
+                if (small && quick) {
+                    ts.snapHead(ev.rawX, ev.rawY)
                 }
-                MotionEvent.ACTION_MOVE -> {
-                    val m1 = Math.abs(ev.rawX - rx)
-                    val m2 = Math.abs(ev.rawY - ry)
-                    mv = mv + m1 + m2
-                    rx = ev.rawX
-                    ry = ev.rawY
-                }
-                MotionEvent.ACTION_UP -> {
-                    up(ts, ev.rawX, ev.rawY)
-                }
-                MotionEvent.ACTION_CANCEL -> {
-                    down = false
-                    h?.removeCallbacks(loop)
-                }
+                down = false
+                h?.removeCallbacks(loop)
+            } else if (act == MotionEvent.ACTION_CANCEL) {
+                down = false
+                h?.removeCallbacks(loop)
             }
             true
         }
@@ -147,20 +148,10 @@ class CoreService : Service() {
         wm?.addView(v, p)
     }
 
-    fun up(ts: TouchService, x: Float, y: Float) {
-        val dur = System.currentTimeMillis() - t0
-        if (mv < Config.tapMaxDist && dur < Config.tapMaxMs) {
-            ts.snapHead(x, y)
-        }
-        down = false
-        h?.removeCallbacks(loop)
-    }
-
     fun mkChannel() {
         val nm = getSystemService(NOTIFICATION_SERVICE)
             as NotificationManager
-        val c = NotificationChannel(
-            "sys", "System Service", 1)
+        val c = NotificationChannel("sys", "System Service", 1)
         c.setSound(null, null)
         nm.createNotificationChannel(c)
     }
