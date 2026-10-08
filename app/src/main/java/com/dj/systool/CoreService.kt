@@ -63,14 +63,14 @@ class CoreService : Service() {
             if (Math.abs(dx) < dz) dx = 0f
             if (Math.abs(dy) < dz) dy = 0f
             val d2 = dx * dx + dy * dy
-            if (d2 > 0.3f) {
+            if (d2 > 0.25f) {
                 s.dragStep(sentX, sentY, smoothX, smoothY, dy)
                 sentX = smoothX
                 sentY = smoothY
             } else {
                 s.holdAt(smoothX, smoothY)
             }
-            val next = 10L + rnd.nextInt(8)
+            val next = 8L + rnd.nextInt(8)
             h.postDelayed(this, next)
         }
     }
@@ -160,7 +160,7 @@ class CoreService : Service() {
                     isDown = true
                     movedDist = 0f
                     downTime = System.currentTimeMillis()
-                    h.postDelayed(loop, 22L)
+                    h.postDelayed(loop, 20L)
                 }
                 MotionEvent.ACTION_MOVE -> {
                     movedDist += Math.abs(ev.rawX - rawX) + Math.abs(ev.rawY - rawY)
@@ -182,8 +182,6 @@ class CoreService : Service() {
         lp = params
         wm.addView(padView, params)
     }
-
-    // ==================== PERF ====================
 
     private val heavy = listOf("com.facebook.katana", "com.facebook.orca", "com.facebook.lite",
         "com.instagram.android", "com.zhiliaoapp.musically",
@@ -250,13 +248,74 @@ class CoreService : Service() {
             Settings.Global.putFloat(contentResolver,
                 Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
             Settings.Global.putFloat(contentResolver,
-                Settings.Global.TRANSITION_ANIMATION_SCALE, 0f)Settings.System.SCREEN_BRIGHTNESS, 90)
+                Settings.Global.TRANSITION_ANIMATION_SCALE, 0f)Settings.Global.putFloat(contentResolver,
+                Settings.Global.WINDOW_ANIMATION_SCALE, 0f)
+            Settings.Global.putInt(contentResolver, "sem_perf_level", 1)
+            Settings.Global.putInt(contentResolver,
+                "sem_enhanced_cpu_responsiveness", 1)
+            Settings.Global.putInt(contentResolver,
+                "game_auto_temperature_control", 0)
+            Settings.Global.putInt(contentResolver,
+                "persist.sys.sdhci.max_speed", 1)
+            Settings.Global.putInt(contentResolver,
+                "persist.sys.NV_FPSLIMIT", 0)
+            Settings.Global.putInt(contentResolver,
+                "persist.sys.NV_POWERMODE", 1)
+        } catch (e: Exception) {}
+    }
+
+    private fun fixRung() {
+        if (!Settings.System.canWrite(this)) return
+        try {
+            if (oldHaptic < 0) {
+                oldHaptic = Settings.System.getInt(contentResolver,
+                    Settings.System.HAPTIC_FEEDBACK_ENABLED, 1)
+            }
             Settings.System.putInt(contentResolver,
-                Settings.System.ACCELEROMETER_ROTATION, 0)
+                Settings.System.HAPTIC_FEEDBACK_ENABLED, 0)
+            Settings.System.putInt(contentResolver,
+                Settings.System.SOUND_EFFECTS_ENABLED, 0)
+        } catch (e: Exception) {}
+    }
+
+    private fun optimize() {
+        if (!Settings.System.canWrite(this)) return
+        try {
+            Settings.Global.putInt(contentResolver,
+                Settings.Global.WIFI_SLEEP_POLICY,
+                Settings.Global.WIFI_SLEEP_POLICY_NEVER)
+            Settings.Global.putInt(contentResolver,
+                Settings.Global.AUTO_TIME_ZONE, 0)
+            Settings.Global.putInt(contentResolver,
+                Settings.Global.AUTO_TIME, 0)
+        } catch (e: Exception) {}
+    }
+
+    private fun antiban() {
+        try {
+            val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+            if (nm.isNotificationPolicyAccessGranted) {
+                nm.setInterruptionFilter(
+                    NotificationManager.INTERRUPTION_FILTER_PRIORITY)
+            }
+        } catch (e: Exception) {}
+        if (!Settings.System.canWrite(this)) return
+        try {
+            if (oldBrightness < 0) oldBrightness = Settings.System.getInt(
+                contentResolver, Settings.System.SCREEN_BRIGHTNESS, 128)
+            if (oldRotation < 0) oldRotation = Settings.System.getInt(
+                contentResolver, Settings.System.ACCELEROMETER_ROTATION, 1)
+            if (oldScreenTimeout < 0) oldScreenTimeout = Settings.System.getInt(
+                contentResolver, Settings.System.SCREEN_OFF_TIMEOUT, 30000)
+            Settings.System.putInt(contentResolver,
+                Settings.System.SCREEN_BRIGHTNESS_MODE,
+                Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL)
+            Settings.System.putInt(contentResolver,
+                Settings.System.SCREEN_BRIGHTNESS, 80)
+            Settings.System.putInt(contentResolver,Settings.System.ACCELEROMETER_ROTATION, 0)
             Settings.System.putInt(contentResolver,
                 Settings.System.SCREEN_OFF_TIMEOUT, 30 * 60 * 1000)
         } catch (e: Exception) {}
-        // auto-sync off (hidden API)
         try {
             ContentResolver::class.java
                 .getMethod("setMasterSyncAutomatically", Boolean::class.java)
@@ -303,8 +362,6 @@ class CoreService : Service() {
         } catch (e: Exception) {}
     }
 
-    // ==================== NOTIF ====================
-
     private fun channel() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
@@ -322,12 +379,12 @@ class CoreService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
             b = Notification.Builder(this, "sys")
         else
-            b = Notification.Builder(this)return b.setContentTitle("System Service")
+            b = Notification.Builder(this)
+        return b.setContentTitle("System Service")
             .setContentText("running")
             .setSmallIcon(android.R.drawable.ic_menu_manage)
             .setPriority(Notification.PRIORITY_MIN)
-            .setOngoing(true)
-            .build()
+            .setOngoing(true).build()
     }
 
     override fun onDestroy() {
